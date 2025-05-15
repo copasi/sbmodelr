@@ -17,6 +17,7 @@
 
 __version__ = "1.0"
 
+
 import os
 import re
 import sys
@@ -25,9 +26,13 @@ import shlex
 import time
 import random
 from datetime import date, datetime
-
+import json #MA added
 import pandas as pd
-from basico import *
+from basico import * 
+import subprocess
+from copasi_process_MA import create_vivarium_file
+import warnings
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 #######################
 # GLOBAL VARIABLES #
@@ -313,7 +318,9 @@ def main():
     parser.add_argument('--ignore-compartments', action='store_true', help='do not replicate compartments')
     parser.add_argument('--ignore-tasks', action='store_true', help='do not copy over task settings')
     parser.add_argument('--sbml', choices=['l1v2', 'l2v3', 'l2v4', 'l2v5', 'l3v1', 'l3v2'], help='export in SBML format of this level and version.')
-
+    #Vivarium argument option
+    parser.add_argument('--vivarium-json', action='store_true', help='Export model in Vivarium-JSON instead of creating COPASI/SBML')
+    
     # Parse the arguments
     args = parser.parse_args()
 
@@ -677,10 +684,12 @@ def main():
         base,ext = os.path.splitext(os.path.basename(seedmodelfile))
         if( args.sbml ):
             newfilename = f"{base}_{fsuff}.xml"
+        #elif ( args.vivarium_json ):
+            #newfilename = f"{base}_{fsuff}.json"
         else:
             newfilename = f"{base}_{fsuff}{ext}"
 
-    # create the new model name
+    # create the new model nameg
     newname = f"{desc} of {seedname}"
 
     # create the new model
@@ -1068,126 +1077,126 @@ def main():
     #####
     # 12. create unit connections
     #####
-
-    # check if we need to add the Hill transport rate law
-    if( args.Hill_transport ):
-        # add Hill kinetics for molecule transport
-        htmap = {'V': 'parameter', 'Km': 'parameter', 'h': 'parameter', 'S': 'substrate', 'P': 'product'}
-        add_function(name='Hill Transport', infix='V * ( S ^ h - P ^ h ) / ( Km ^ h + S ^ h + P ^ h )', type='reversible', mapping=htmap, model=newmodel)
+    if not args.vivarium_json:
+  # check if we need to add the Hill transport rate law
+        if( args.Hill_transport ):
+         # add Hill kinetics for molecule transport
+            htmap = {'V': 'parameter', 'Km': 'parameter', 'h': 'parameter', 'S': 'substrate', 'P': 'product'}
+            add_function(name='Hill Transport', infix='V * ( S ^ h - P ^ h ) / ( Km ^ h + S ^ h + P ^ h )', type='reversible', mapping=htmap, model=newmodel)
 
     # species to be transported
-    if( transported ):
-        for (sp,ttype) in transported:
+        if( transported ):
+            for (sp,ttype) in transported:
             # check that the species exists
-            if( (seednspecs>0) and (sp in mspecs.index) ):
+                if( (seednspecs>0) and (sp in mspecs.index) ):
                 # check that the species depends on reactions
-                if( mspecs.loc[sp].at['type'] != 'reactions' ):
-                    print( f'ERROR: {sp} is a species that does not depend on reactions, no transport reactions can be added')
-                    exit()
-                if( ttype == 'a' ):
+                    if( mspecs.loc[sp].at['type'] != 'reactions' ):
+                        print( f'ERROR: {sp} is a species that does not depend on reactions, no transport reactions can be added')
+                        exit()
+                    if( ttype == 'a' ):
                     # add a rate constant for the transport reactions
-                    rateconst = f'k_{sp}_transport'
-                    if( not args.cnoise ):
-                        add_parameter(name=rateconst, initial_value=trate, model=newmodel)
-                elif( ttype == 'h' ):
-                    # add parameters for the transport reactions
-                    vmaxconst = f'Vmax_{sp}_transport'
-                    if( not args.cnoise ):
-                        add_parameter(name=vmaxconst, initial_value=tVmax, model=newmodel)
-                    kmconst = f'Km_{sp}_transport'
-                    add_parameter(name=kmconst, initial_value=tKm, model=newmodel)
-                    hconst = f'h_{sp}_transport'
-                    add_parameter(name=hconst, initial_value=th, model=newmodel)
-                else:
-                    print(f'ERROR: species transport of type \'{ttype}\' is not allowed.')
-                    exit()
-                # add a transport reaction for each neighbour
-                if( dim == 1):
-                    # add transport between species and the medium which is always reversible
-                    if(args.add_medium):
-                        for r in range(gridr):
-                            suffa = f'{r+1}'
-                            rname = f't_{sp}_{suffa}-medium'
-                            rscheme = f'{sp}_{suffa} = {sp}_medium'
-                            if( ttype == 'a' ):
-                                thisrateconst = rateconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisrateconst = f'k_{sp}_transport_{suffa}-medium'
-                                    v = addnoise(trate,float(level),dist)
-                                    add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
-                                add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                            elif( ttype == 'h' ):
-                                thisvmaxconst = vmaxconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 vmax per reaction
-                                    (level, dist) = args.cnoise
-                                    thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
-                                    v = addnoise(tVmax,float(level),dist)
-                                    add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
-                                add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-
-                    if( args.network ):
-                        for link in links:
-                            suffa = f'{link[0]}'
-                            suffb = f'{link[1]}'
-                            rname = f't_{sp}_{suffa}-{suffb}'
-                            # check whether reversible or irreversible
-                            if digraph:
-                                # check if we have a self-connection and ignore if type a or m
-                                if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
-                                    print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -> {suffb}')
-                                    continue
-                                rscheme = f'{sp}_{suffa} -> {sp}_{suffb}'
+                        rateconst = f'k_{sp}_transport'
+                        if( not args.cnoise ):
+                            add_parameter(name=rateconst, initial_value=trate, model=newmodel)
+                    elif( ttype == 'h' ):
+                        # add parameters for the transport reactions
+                        vmaxconst = f'Vmax_{sp}_transport'
+                        if( not args.cnoise ):
+                            add_parameter(name=vmaxconst, initial_value=tVmax, model=newmodel)
+                        kmconst = f'Km_{sp}_transport'
+                        add_parameter(name=kmconst, initial_value=tKm, model=newmodel)
+                        hconst = f'h_{sp}_transport'
+                        add_parameter(name=hconst, initial_value=th, model=newmodel)
+                    else:
+                        print(f'ERROR: species transport of type \'{ttype}\' is not allowed.')
+                        exit()
+                    # add a transport reaction for each neighbour
+                    if( dim == 1):
+                        # add transport between species and the medium which is always reversible
+                        if(args.add_medium):
+                            for r in range(gridr):
+                                suffa = f'{r+1}'
+                                rname = f't_{sp}_{suffa}-medium'
+                                rscheme = f'{sp}_{suffa} = {sp}_medium'
                                 if( ttype == 'a' ):
                                     thisrateconst = rateconst
                                     if( args.cnoise ):
                                         # if we add noise to couplings, then we need 1 parameter per reaction
                                         (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
+                                        thisrateconst = f'k_{sp}_transport_{suffa}-medium'
                                         v = addnoise(trate,float(level),dist)
                                         add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (irreversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Shalve': kmconst, 'h': hconst, 'substrate': f'{sp}_{suffa}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Cooperativity' )
-
-                            else:
-                                # check if we have a self-connection and ignore if type a or m
-                                if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
-                                    print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -- {suffb}')
-                                rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'k2': rateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
+                                    rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
                                     add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
                                 elif( ttype == 'h' ):
                                     thisvmaxconst = vmaxconst
                                     if( args.cnoise ):
                                         # if we add noise to couplings, then we need 1 vmax per reaction
                                         (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
+                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
                                         v = addnoise(tVmax,float(level),dist)
                                         add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
+                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
                                     add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
+
+                        if( args.network ):
+                            for link in links:
+                                suffa = f'{link[0]}'
+                                suffb = f'{link[1]}'
+                                rname = f't_{sp}_{suffa}-{suffb}'
+                                # check whether reversible or irreversible
+                                if digraph:
+                                    # check if we have a self-connection and ignore if type a or m
+                                    if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
+                                        print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -> {suffb}')
+                                        continue
+                                    rscheme = f'{sp}_{suffa} -> {sp}_{suffb}'
+                                    if( ttype == 'a' ):
+                                        thisrateconst = rateconst
+                                        if( args.cnoise ):
+                                            # if we add noise to couplings, then we need 1 parameter per reaction
+                                            (level, dist) = args.cnoise
+                                            thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
+                                            v = addnoise(trate,float(level),dist)
+                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
+                                        rmap = {'k1': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
+                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (irreversible)' )
+                                    elif( ttype == 'h' ):
+                                        thisvmaxconst = vmaxconst
+                                        if( args.cnoise ):
+                                            # if we add noise to couplings, then we need 1 vmax per reaction
+                                            (level, dist) = args.cnoise
+                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
+                                            v = addnoise(tVmax,float(level),dist)
+                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
+                                        rmap = {'V': thisvmaxconst, 'Shalve': kmconst, 'h': hconst, 'substrate': f'{sp}_{suffa}'}
+                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Cooperativity' )
+
+                                else:
+                                    # check if we have a self-connection and ignore if type a or m
+                                    if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
+                                        print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -- {suffb}')
+                                    rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
+                                    if( ttype == 'a' ):
+                                        thisrateconst = rateconst
+                                        if( args.cnoise ):
+                                            # if we add noise to couplings, then we need 1 parameter per reaction
+                                            (level, dist) = args.cnoise
+                                            thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
+                                            v = addnoise(trate,float(level),dist)
+                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
+                                        rmap = {'k1': thisrateconst, 'k2': rateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
+                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
+                                    elif( ttype == 'h' ):
+                                        thisvmaxconst = vmaxconst
+                                        if( args.cnoise ):
+                                            # if we add noise to couplings, then we need 1 vmax per reaction
+                                            (level, dist) = args.cnoise
+                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
+                                            v = addnoise(tVmax,float(level),dist)
+                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
+                                        rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
+                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
                 elif( dim == 2 ):
                     for r in range(gridr):
                         for c in range(gridc):
@@ -1367,10 +1376,52 @@ def main():
                     # insanity error
                     print('ERROR: this should not happen, dim is not 1,2 or 3. Contact developer!')
                     exit()
-            else:
+        else:
                 # error
-                print( f'ERROR: Species {sp} does not exist in the model' )
-                exit()
+            print( f'ERROR: Species {sp} does not exist in the model' )
+            exit()
+    else: 
+        #Vivarium JSON Mode: bypass the unit connections and everything
+        vivarium_transport_data = []
+        
+        if transported:
+            for (sp, ttype) in transported:
+                if ttype != 'a' :
+                    print( f'Only mass action is allowed in Vivarium mode')
+                if (seednspecs > 0) and (sp in mspecs.index):
+                    rateconst = f'k_{sp}_transport'
+                    vivarium_transport_entry = {
+                            "species": sp,
+                            "rate_constant":trate,
+                            "reaction_details": {
+                                
+                                "parameter_name" : rateconst
+                        }
+                    }
+                    vivarium_transport_data.append(vivarium_transport_entry)
+                else:
+                    print(f"{sp} does not exist in the model")
+                    
+                        
+            # Generate topology (linear grid as default)
+            rows = args.rows
+            cols = args.columns
+            cell_ids = [f'cell{r * cols + c}' for r in range(rows) for c in range(cols)]
+            topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
+
+            output_json = os.path.splitext(newfilename)[0] + "_vivarium.json"
+            vivarium_json_model = create_vivarium_file(
+                    model=args.filename,
+                    linkers=args.transport,
+                    output_json=output_json,
+                    transport_data=vivarium_transport_data,
+                    transport_rate=trate,
+                    edges=topo_edges,
+                    cell_ids=cell_ids
+    )
+
+        
+        
 
     # ODEs to be coupled by diffusive mechanism or chemical synapses
     if( odelink ):
@@ -2162,8 +2213,9 @@ def main():
     #####
     # 13. set task parameters
     #####
+    
 
-    if( not args.ignore_tasks):
+    if( not args.ignore_tasks and args.vivarium_json):
         # time course
         tc = get_task_settings('Time-Course', basic_only=False, model=seedmodel)
         # if report is not the default one, clear it
@@ -2306,8 +2358,6 @@ def main():
         if( tcs['scheduled'] ):
             print(' Warning: Time Course Sensitivities task settings were not copied to the new model.')
 
-    #TODO: what to do with plots?
-
 
     #####
     # 14. save model
@@ -2322,8 +2372,6 @@ def main():
     # otherwise save an SBML file
     else:
         save_model(filename=newfilename, type='sbml', sbml_level=sbmll, sbml_version=sbmlv, model=newmodel)
-    if( not args.quiet ):
-        print(f"created new model {newfilename} with {desc} of {seedmodelfile}\n")
-
+        
 if __name__ == '__main__':
     main()
