@@ -1,33 +1,31 @@
 """
 Copasi Process
 """
-from process_bigraph import Process, Composite, ProcessTypes
-from basico import load_model, get_species, run_time_course
-#from utils.basico_helper import _set_initial_concentrations, _get_transient_concentration
-import matplotlib.pyplot as plt
 
-import sys 
+from process_bigraph import Process, Composite, ProcessTypes
+from basico.model_io import load_model, save_model
+from basico.model_info import get_species
+from basico.task_timecourse import run_time_course
+import matplotlib.pyplot as plt
+import sys
 import os
 import COPASI
 import argparse
 import warnings
-warnings.filterwarnings("ignore", category=SyntaxWarning)
 import json
+from basico.model_info import add_species, add_reaction
+from basico.model_info import add_function
 
-
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 toy_model="BindingKa.cps"
 
-#model="C:/Users/mabda/Desktop/VSC R3/multiscale/BindingKa.cps"
 
-
-# this is how we set values in COPASI really fast
+# How we set values in COPASI really fast
 def _set_initial_concentrations(changes,dm):
     model = dm.getModel()
     assert(isinstance(model, COPASI.CModel))
-
     references = COPASI.ObjectStdVector()
-
     for name, value in changes.items():
         species = model.getMetabolite(name)
         # assert(isinstance(species, COPASI.CMetab))
@@ -36,11 +34,11 @@ def _set_initial_concentrations(changes,dm):
             continue
         species.setInitialConcentration(value)
         references.append(species.getInitialConcentrationReference())
-#Apply all updates in one go
+# Apply all updates in one go
     model.updateInitialValues(references)
 
-# this is how we pull values out of COPASI fast
-def _get_transient_concentration(name, dm): #gets the current [] of a species from model after simulation
+# How we pull values out of COPASI fast
+def _get_transient_concentration(name, dm):
     model = dm.getModel()
     assert(isinstance(model, COPASI.CModel))
     species = model.getMetabolite(name)
@@ -51,143 +49,166 @@ def _get_transient_concentration(name, dm): #gets the current [] of a species fr
     return species.getConcentration()
 
 
-#Custom Vivarium process - loads COPASI model, takes input [], runs a simulation, returns updated []
+# Custom Vivarium process
 class CopasiModule(Process):
 
     defaults = {
         'model_file': 'string',
-        # 'time_step': 1.0,
-        'linkers' : 'list'
+        'linkers' : 'list',
+        'transport_rate': 'float',
+        'cell_id': 'float'
     }
 
-    def initialize(self, parameters=None, core=None):
-        self.copasi_model_object = load_model(self.config['model_file'])
-        self.all_species = get_species(model=self.copasi_model_object).index.tolist() #saves all species names  
-        self.ic_default = get_species(model=self.copasi_model_object)["initial_concentration"].values #gets their inital concentrations
-        self.linker_species = self.config['linkers'] #what ever is passed as update 
+    def initialize(self, config):
+        self.copasi_model_object = load_model(self.config['model_file']) 
+        self.all_species = get_species(model=self.copasi_model_object).index.tolist()
+        self.ic_default = get_species(model=self.copasi_model_object)["initial_concentration"].values
+        self.linker_species = self.config['linkers']
+        self.transport_rate = self.config['transport_rate']
+        self.external_linkers = []
+        self.cid = self.config['cell_id']
         
-        #Inputs and outputs --> tells vivarium how to pass data in and get data out (like ports)
-    
+        # External species that does the transport
+        for linker in self.linker_species:
+            ext = f'{linker}_external'
+            if ext not in get_species(model=self.copasi_model_object).index:
+                add_species(name = ext,
+                    initial_concentration=1.0,
+                    model=self.copasi_model_object
+                    )
+                self.external_linkers.append(ext)
+                add_reaction(
+                    model=self.copasi_model_object,
+                    name=f'{linker}exchange',
+                    function='Mass action (reversible)',
+                    mapping={
+                        'substrate': linker,
+                        'product': ext,
+                        'k1': self.transport_rate,
+                        'k2':'k1',
+                    },
+                )
+        # Save model after external species and reaction is added 
+        base,_=os.path.splitext(self.config['model_file'])
+        outfile=base + f"{'cell_id'}.cps"
+        save_model(outfile,
+                    model=self.copasi_model_object,
+                    type='copasi',
+                    overwrite=True)
+        print(f"New COPASI model saved with external species to {outfile}")
+        self.config['model_file']=outfile
+
+             
     def inputs(self):
         return {
-            'species': 'map[float]'  # TODO -- make this a narrower type
+            'species': 'map[float]'
         }
         
     def outputs(self):
         return {
             'species':
-                'map[float]'  # TODO -- make this a narrower type
+                'map[float]'
         }
         
 
-
-    def update(self, states, interval):
-
-        # get the current linker species levels
-        species_levels = states['species']
-        #TODO: check that species level is {ME:value}
-
-        # set this value within copasi
-        _set_initial_concentrations(species_levels,self.copasi_model_object)
-
-        # run a short copasi simulation
-        timecourse = run_time_course(duration=interval, intervals=1, update_model=True, model=self.copasi_model_object)
-
-        # get the values out
+    def update(self, states, interval): 
+        external_set = {
+            ext: states['species'][ext]
+            for ext in self.external_linkers
+        }
+        
+        _set_initial_concentrations(external_set,
+                                    self.copasi_model_object)
+        
+        timecourse = run_time_course(duration=interval, 
+                                     intervals=1,
+                                     update_model=True,
+                                     model=self.copasi_model_object)
         results = { 
                    mol_id:_get_transient_concentration(name=mol_id,dm=self.copasi_model_object)
                    for mol_id in self.all_species}
-        #TODO: check that results looks like {ME:Delta value}
-        # return the values through the species port
         return {
             'species': results}
         
 
-#class TransportProcess(Process):
-    # defaults = 
-    
-
-        
-def run_copasi_process(core): #set up and run the vivarium simulation
+# Sets up and runs the vivarium simulation
+def run_copasi_process(core): 
     print('this ran!')
     total_time = 10
-    json_document_state = create_vivarium_file(model=toy_model, linkers=['a'], number_cells=2) 
+    json_document_state = create_vivarium_file(
+        model=toy_model,
+        linkers=['a'],
+        edges=[('cell 0', 'cell 1')],
+        )
     
-
-    # creat the vivarium simulation from document
-    sim = Composite({'state': json_document_state}, core=core) #,core=core
-    
-   # initial_state = {}
-    # run the simulation
+    # Create the vivarium simulation from document
+    sim = Composite({'state': json_document_state}, core=core)
     sim.run(total_time)
 
 
+# Creating JSON function
 def create_vivarium_file(
     model, 
     linkers=None, 
     output_json=None,
     transport_data=None,
-    number_cells=None,
+    cell_ids=None,
+    transport_rate=None,
+    edges=None
     ): 
-    #this function creates and saves a vivarium file according to the specs of newfilename and output_json
-    cell_linkers = [] 
-    for i in range(0, number_cells): 
-        for j in linkers: 
-            linker_name = f"{i}_{j}"
-            cell_linkers.append(linker_name)
+    edges = edges or [] 
+    
+    
+    if cell_ids is None: 
+        cell_ids = []
+    for edge in edges:
+        c1, c2 = edge
+        if c1 not in cell_ids: 
+            cell_ids.append(c1)
+        if c2 not in cell_ids:
+            cell_ids.append(c2)
+  
+    
+    external_species = {
+        cid: { f"{linker}_external": 1.0 for linker in linkers }
+        for cid in cell_ids
+    }    
+    
+    # Make the JSON document
     json_document_state = {
-        'external_species': {
-            linker: 1 for linker in cell_linkers
-            },
+        'external_species': external_species,
         'cells': {
-            f'cell{i}': {
+            cid: {
                 '_type': 'process',
                 'address': 'local:copasi',
                 'config': {
                     'model_file': model,
-                    'linkers': linkers
+                    'linkers': linkers,
+                    'cell_id': cid,
                 },
                 'inputs': {
-                    'species': ['..', 'external_species']
+                    'species': ['..', 'external_species', cid]
                 },
                 'outputs': {
-                    'species': ['..', 'external_species']
+                    'species': ['..', 'external_species', cid]
                 }
             }
-             for i in range(0,number_cells)
-        }
-        # 'transport': {
-        #     '_type': 'process',
-        #     'address': 'local:transport',  #TODO: need to make this
-        #     'config': {
-            #   ########
-            # },
-        #     'inputs': {
-                    #'species': 'external species'
-            # },
-        #     'outputs': {
-            #       # 'species': 'external species'
-            # },
-        # }
+            for cid in cell_ids    
+        },
     }
     
-    #TODO: add initial state from copasi file
-    with open(output_json, "w") as outfile:
-        json.dump(json_document_state, outfile, indent=2)
-        print(f'Vivarium model written to {output_json}')
-    
+    if output_json:
+        with open(output_json, "w") as outfile:
+            json.dump(json_document_state, outfile, indent=2)
+            print(f'Vivarium model written to {output_json}')
+
     return json_document_state
 
 def register_copasi_types(core):
-    core.register_process('copasi', CopasiModule)
+    core.register_process('copasi', CopasiModule),
 
 
 if __name__ == '__main__':
     core=ProcessTypes()
     register_copasi_types(core=core)
     run_copasi_process(core=core)
-    
-#import json 
-#with open('copasi_state.json', 'w') as f: 
- #   json.dump(json_document_state, f, indent=2)
-    
