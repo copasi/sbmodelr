@@ -1,7 +1,7 @@
 # *sbmodelr* - a tool to replicate a COPASI/SBML model into a set of replicas
 
 ## Summary
-This is a python-based command line utility (*sbmodelr*) that reads a systems biology model encoded in COPASI or SBML formats to create a new model that is composed of several connected units that are replicates of the base model. These units may be organized as an arbitrarily connected network, a 2D rectangular grid, or a 3D cuboid array. Each unit contains a complete copy of the original model with all its species, reactions, compartments, events, and global quantities.
+This is a python-based command line utility (*sbmodelr*) that reads a systems biology model to create a new model that is composed of several connected units that are copies of the base model. These units may be organized as an arbitrarily connected network, a 2D rectangular grid, or a 3D cuboid array. Each unit contains a complete copy of the original model with all its species, reactions, compartments, events, and global quantities. *sbmodlr* can read models encoded in COPASI or SBML formats.
 
 Connections between units in the new model can be:
  - species being transported between units
