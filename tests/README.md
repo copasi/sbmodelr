@@ -43,3 +43,7 @@ Tests should focus on:
  - invalid GraphViz files
  - synaptic coupling in compartment connections
  - parameter noise that results in negative values that should be non-negative
+
+ **3. bug samples** with numbers 1000 to 1500
+
+ These tests are created to replicate a bug. After the bug is fixed, they will be useful to test for regressions.
