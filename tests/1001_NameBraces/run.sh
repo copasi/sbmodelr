@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # run sbmodelr
-sbmodelr -t a ../sources/ATPlocs.cps 2 1> output 2> /dev/null
+sbmodelr -t a ../sources/ATPlocs.cps 2 >output 2>&1
 
 # compare output and target
 difference=$(diff output target_stdout)
