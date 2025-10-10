@@ -533,6 +533,21 @@ def main():
     if( not args.quiet ):
         print(f'Processing {seedmodelfile}')
 
+    #Get the species first to check for duplicate names and rename them
+    # this is not nice but needs to be done to avoid all sorts of troubles...
+    mspecs = get_species(model=seedmodel, exact=True)
+    dups = mspecs.groupby('name')
+    for i, df in dups:
+        count = len(df)
+        if count > 1:
+            for _, j in df.iterrows():
+                nn = i + '_' + j['compartment']
+                if count > 1:
+                    set_species(j['display_name'], new_name=nn, exact=True, model=seedmodel)
+                else:
+                    set_species(i, new_name=nn, exact=True, model=seedmodel)
+                count -= 1
+
     #Get the global quantities
     mparams = get_parameters(model=seedmodel, exact=True)
     if( mparams is None):
