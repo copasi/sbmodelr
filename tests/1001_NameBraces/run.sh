@@ -16,4 +16,9 @@ if [[ $difference ]]; then
   fail=1
 fi
 
+if [ "$fail" = 0 ] ; then
+  printf 'PASS %s\n' "${test}"
+  rm output *.cps > /dev/null 2>&1
+fi
+
 exit $fail
