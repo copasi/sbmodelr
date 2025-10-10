@@ -1,1 +1,9 @@
-FAIL
+Processing ../sources/ATPlocs.cps
+  Reactions:         2
+  Species:           5	(Reactions: 5, Fixed: 0, Assignment: 0, ODE: 0)
+  Compartments:      2	(Fixed: 2, Assignment: 0, ODE: 0)
+  Global quantities: 1	(Fixed: 0, Assignment: 1, ODE: 0)
+  Events:            0	(Only time-dependent: 0, variable-dependent: 0)
+
+created new model ATPlocs_2.cps with a set of 2 replicas of ../sources/ATPlocs.cps
+
