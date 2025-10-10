@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- generated with COPASI 4.45 (Build 298) (http://www.copasi.org) at 2025-09-12T00:12:03Z -->
+<!-- generated with COPASI 4.45 (Build 298) (http://www.copasi.org) at 2025-10-09T15:11:04Z -->
 <?oxygen RNGSchema="http://www.copasi.org/static/schema/CopasiML.rng" type="xml"?>
 <COPASI xmlns="http://www.copasi.org/static/schema" versionMajor="4" versionMinor="45" versionDevel="298" copasiSourcesModified="0">
   <ListOfFunctions>
@@ -93,32 +93,14 @@ The inclusion of braces in the names seems to cause a bug in sbmodelr
     </Comment>
     <ListOfCompartments>
       <Compartment key="Compartment_0" name="cytoplasm" simulationType="fixed" dimensionality="3" addNoise="false">
-        <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-<rdf:Description rdf:about="#Compartment_0">
-</rdf:Description>
-</rdf:RDF>
-        </MiriamAnnotation>
       </Compartment>
       <Compartment key="Compartment_1" name="mitochondria" simulationType="fixed" dimensionality="3" addNoise="false">
-        <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-<rdf:Description rdf:about="#Compartment_1">
-</rdf:Description>
-</rdf:RDF>
-        </MiriamAnnotation>
       </Compartment>
     </ListOfCompartments>
     <ListOfMetabolites>
       <Metabolite key="Metabolite_0" name="ATP" simulationType="reactions" compartment="Compartment_0" addNoise="false">
         <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="#Metabolite_0">
 </rdf:Description>
 </rdf:RDF>
@@ -126,9 +108,7 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
       </Metabolite>
       <Metabolite key="Metabolite_1" name="ATP" simulationType="reactions" compartment="Compartment_1" addNoise="false">
         <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="#Metabolite_1">
 </rdf:Description>
 </rdf:RDF>
@@ -136,9 +116,7 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
       </Metabolite>
       <Metabolite key="Metabolite_2" name="a" simulationType="reactions" compartment="Compartment_0" addNoise="false">
         <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="#Metabolite_2">
 </rdf:Description>
 </rdf:RDF>
@@ -146,10 +124,18 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
       </Metabolite>
       <Metabolite key="Metabolite_3" name="b" simulationType="reactions" compartment="Compartment_0" addNoise="false">
         <MiriamAnnotation>
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="#Metabolite_3">
+</rdf:Description>
+</rdf:RDF>
+        </MiriamAnnotation>
+      </Metabolite>
+      <Metabolite key="Metabolite_4" name="c" simulationType="reactions" compartment="Compartment_0" addNoise="false">
+        <MiriamAnnotation>
 <rdf:RDF
 xmlns:dcterms="http://purl.org/dc/terms/"
 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-<rdf:Description rdf:about="#Metabolite_3">
+<rdf:Description rdf:about="#Metabolite_4">
 </rdf:Description>
 </rdf:RDF>
         </MiriamAnnotation>
@@ -158,9 +144,7 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
     <ListOfModelValues>
       <ModelValue key="ModelValue_0" name="ratio" simulationType="assignment" addNoise="false">
         <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="#ModelValue_0">
 </rdf:Description>
 </rdf:RDF>
@@ -172,14 +156,6 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
     </ListOfModelValues>
     <ListOfReactions>
       <Reaction key="Reaction_0" name="transport" reversible="true" fast="false" addNoise="false">
-        <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-<rdf:Description rdf:about="#Reaction_0">
-</rdf:Description>
-</rdf:RDF>
-        </MiriamAnnotation>
         <ListOfSubstrates>
           <Substrate metabolite="Metabolite_0" stoichiometry="1"/>
         </ListOfSubstrates>
@@ -208,19 +184,12 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
         </KineticLaw>
       </Reaction>
       <Reaction key="Reaction_1" name="r1" reversible="false" fast="false" addNoise="false">
-        <MiriamAnnotation>
-<rdf:RDF
-xmlns:dcterms="http://purl.org/dc/terms/"
-xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-<rdf:Description rdf:about="#Reaction_1">
-</rdf:Description>
-</rdf:RDF>
-        </MiriamAnnotation>
         <ListOfSubstrates>
           <Substrate metabolite="Metabolite_2" stoichiometry="1"/>
+          <Substrate metabolite="Metabolite_3" stoichiometry="1"/>
         </ListOfSubstrates>
         <ListOfProducts>
-          <Product metabolite="Metabolite_3" stoichiometry="1"/>
+          <Product metabolite="Metabolite_4" stoichiometry="1"/>
         </ListOfProducts>
         <ListOfConstants>
           <Constant key="Parameter_2" name="k1" value="0.1"/>
@@ -232,6 +201,7 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
             </CallParameter>
             <CallParameter functionParameter="FunctionParameter_81">
               <SourceParameter reference="Metabolite_2"/>
+              <SourceParameter reference="Metabolite_3"/>
             </CallParameter>
           </ListOfCallParameters>
         </KineticLaw>
@@ -255,10 +225,11 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
           <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[mitochondria]" value="0.5" type="Compartment" simulationType="fixed"/>
         </ModelParameterGroup>
         <ModelParameterGroup cn="String=Initial Species Values" type="Group">
-          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[ATP]" value="6.0221407599999791e+23" type="Species" simulationType="reactions"/>
-          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[mitochondria],Vector=Metabolites[ATP]" value="3.0110703799999899e+23" type="Species" simulationType="reactions"/>
-          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[a]" value="6.0221407599999972e+23" type="Species" simulationType="reactions"/>
-          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[b]" value="6.0221407599999979e+23" type="Species" simulationType="reactions"/>
+          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[ATP]" value="6.022140759999973e+23" type="Species" simulationType="reactions"/>
+          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[mitochondria],Vector=Metabolites[ATP]" value="3.0110703799999868e+23" type="Species" simulationType="reactions"/>
+          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[a]" value="6.0221407599999911e+23" type="Species" simulationType="reactions"/>
+          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[b]" value="6.0221407599999918e+23" type="Species" simulationType="reactions"/>
+          <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Compartments[cytoplasm],Vector=Metabolites[c]" value="6.0221407599999972e+23" type="Species" simulationType="reactions"/>
         </ModelParameterGroup>
         <ModelParameterGroup cn="String=Initial Global Quantities" type="Group">
           <ModelParameter cn="CN=Root,Model=Model to test bug in sbmodelr,Vector=Values[ratio]" value="0.99999999999999989" type="ModelValue" simulationType="assignment"/>
@@ -279,13 +250,14 @@ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
       <StateTemplateVariable objectReference="Metabolite_0"/>
       <StateTemplateVariable objectReference="Metabolite_2"/>
       <StateTemplateVariable objectReference="Metabolite_3"/>
+      <StateTemplateVariable objectReference="Metabolite_4"/>
       <StateTemplateVariable objectReference="Metabolite_1"/>
       <StateTemplateVariable objectReference="ModelValue_0"/>
       <StateTemplateVariable objectReference="Compartment_0"/>
       <StateTemplateVariable objectReference="Compartment_1"/>
     </StateTemplate>
     <InitialState type="initialState">
-      0 6.0221407599999791e+23 6.0221407599999972e+23 6.0221407599999979e+23 3.0110703799999899e+23 0.99999999999999989 1 0.5 
+      0 6.022140759999973e+23 6.0221407599999911e+23 6.0221407599999918e+23 6.0221407599999972e+23 3.0110703799999868e+23 0.99999999999999989 1 0.5 
     </InitialState>
   </Model>
   <ListOfTasks>
