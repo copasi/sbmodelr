@@ -10,9 +10,9 @@
 # Initially written March-August 2024 by Pedro Mendes <pmendes@uchc.edu>
 # Additions by Maya Abdalla January-May 2025
 
-# version 1.0 has the baseline functionality
-# version 1.1: bugfix allowing models to have species in more than one
-#              compartment with same name
+# v. 1.0: baseline functionality
+# v. 1.1: bugfix allowing models to have species in more than one
+#         compartment with same name
 
 #TODO: v.1.2: incorporate Maya's additions (vivarium mode)
 #TODO: v.1.3: rationalize all topologies through network representation
