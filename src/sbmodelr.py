@@ -6,20 +6,23 @@
 # This takes a SBML or COPASI file and replicates it as a set of sub-models
 # which can exist just side-by-side or can be connected in different ways.
 #
-# Written March-August 2024 by Pedro Mendes <pmendes@uchc.edu>
-# this code is released under the Artistic 2.0 License
+# This code is released under the Artistic 2.0 License
+# Initially written March-August 2024 by Pedro Mendes <pmendes@uchc.edu>
+# Additions by Maya Abdalla January-May 2025
 
 # version 1.0 has the baseline functionality
+# version 1.1: bugfix allowing models to have species in more than one
+#              compartment with same name
 
-#TODO: v.1.1: incorporate Maya's additions (vivarium mode)
-#TODO: v.1.2: rationalize all topologies through network representation
-#TODO: v.1.3: gene regulation by adding corresponding protein?
+#TODO: v.1.2: incorporate Maya's additions (vivarium mode)
+#TODO: v.1.3: rationalize all topologies through network representation
+#TODO: v.1.4: gene regulation by adding corresponding protein?
 #TODO: WISH LIST
 #TODO: binding between units?  (would nedd to select A,B and bind each one on each side)
 #TODO: modification between units? (would need to select species and reaction)
 #TODO: hexagonal arrays? (please no!)
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 import os
 import re
