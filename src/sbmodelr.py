@@ -13,8 +13,8 @@
 # v. 1.0: baseline functionality
 # v. 1.1: bugfix allowing models to have species in more than one
 #         compartment with same name
+# v. 1.2: incorporates vivarium mode (Maya Abdalla's additions)
 
-#TODO: v.1.2: incorporate Maya's additions (vivarium mode)
 #TODO: v.1.3: rationalize all topologies through network representation
 #TODO: v.1.4: gene regulation by adding corresponding protein?
 #TODO: WISH LIST
@@ -22,7 +22,7 @@
 #TODO: modification between units? (would need to select species and reaction)
 #TODO: hexagonal arrays? (please no!)
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 import os
 import re
@@ -32,6 +32,7 @@ import shlex
 import time
 import random
 from datetime import date, datetime
+import json
 
 import pandas as pd
 from basico import *
@@ -320,6 +321,8 @@ def main():
     parser.add_argument('--ignore-compartments', action='store_true', help='do not replicate compartments')
     parser.add_argument('--ignore-tasks', action='store_true', help='do not copy over task settings')
     parser.add_argument('--sbml', choices=['l1v2', 'l2v3', 'l2v4', 'l2v5', 'l3v1', 'l3v2'], help='export in SBML format of this level and version.')
+    #Vivarium argument option
+    parser.add_argument('--vivarium', action='store_true', help='Export JSON and model for Vivarium multiscale simulation')
 
     # Parse the arguments
     args = parser.parse_args()
