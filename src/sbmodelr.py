@@ -9,8 +9,12 @@
 # Written March-August 2024 by Pedro Mendes <pmendes@uchc.edu>
 # this code is released under the Artistic 2.0 License
 
-#TODO: POSSIBLE IMPROVEMENTS
-#TODO: gene regulation by adding corresponding protein?
+# version 1.0 has the baseline functionality
+
+#TODO: v.1.1: incorporate Maya's additions (vivarium mode)
+#TODO: v.1.2: rationalize all topologies through network representation
+#TODO: v.1.3: gene regulation by adding corresponding protein?
+#TODO: WISH LIST
 #TODO: binding between units?  (would nedd to select A,B and bind each one on each side)
 #TODO: modification between units? (would need to select species and reaction)
 #TODO: hexagonal arrays? (please no!)
