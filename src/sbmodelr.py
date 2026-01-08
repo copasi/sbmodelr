@@ -243,6 +243,79 @@ def read_network(network_file):
             del ll[0]
     return ll
 
+# function to create a network connections for a 2D matrix
+def make_network_cuboid(rows,cols,lines):
+    # error checking
+    if( rows*cols*lines == 0 ):
+        print(f'ERROR calling make_network_cuboid() with zero rows, cols, or lines')
+        exit()
+    if( rows<0 or cols<0 or lines<0 ):
+        print(f'ERROR calling make_network_cuboid() with negative arguments')
+        exit()
+    if( rows == 1 ):
+        print(f'ERROR calling make_network_cuboid() with a single row')
+        exit()
+    if( cols == 1 and lines > 1 ):
+        print(f'ERROR calling make_network_cuboid() with cols=1 and lines>1')
+        exit()
+    # check dimensionality
+    dim=0
+    if(rows>1):
+        dim = dim + 1
+    if(cols>1):
+        dim = dim + 1
+    if(lines>1):
+        dim = dim + 1
+
+    # list of edges
+    ll = []
+
+    # nothing to do in dimension 1
+    if( dim==1 ):
+        return ll
+
+    # this is not a digraph, so don't add link 0,0
+    #if( re.search(r'digraph\s*.*{', netf) ):
+    #    ll.append((0,0))
+
+    # for edge names we use "r,c" for 2D and "r,c,l" for 3D
+    if( dim==2 ):
+        for r in range(rows):
+            for c in range(cols):
+                # this one
+                e1 = f"{r+1},{c+1}"
+                # on the right
+                if( c+1 < cols ):
+                    e2 = f"{r+1},{c+2}"
+                    ll.append((e1,e2))
+                # below
+                if( r+1 < rows ):
+                    e2 = f"{r+2},{c+1}"
+                    ll.append((e1,e2))
+
+    if( dim==3 ):
+        for r in range(rows):
+            for c in range(cols):
+                for l in range(lines):
+                    # this one
+                    e1 = f"{r+1},{c+1},{l+1}"
+                    # on the right
+                    if( c+1 < cols ):
+                        e2 = f"{r+1},{c+2},{l+1}"
+                        ll.append((e1,e2))
+                    # below
+                    if( r+1 < rows ):
+                        e2 = f"{r+2},{c+1},{l+1}"
+                        ll.append((e1,e2))
+                    # above
+                    if( l+1 < lines ):
+                        e2 = f"{r+1},{c+1},{l+2}"
+                        ll.append((e1,e2))
+
+    # function returns list of edges
+    return ll
+
+
 ############################
 # MAIN PROGRAM STARTS HERE #
 
@@ -497,6 +570,7 @@ def main():
             exit()
         # parse the network file
         links = read_network(args.network)
+        # check if it is a digraph
         digraph = False
         if( len(links) > 0 ):
             if( links[0]==(0,0) ):
@@ -525,6 +599,13 @@ def main():
             for k, v in regulated.items():
                 indegrees[v] = indegrees.get(v, []) + [k]
             # indegrees is the inverse of regulated...
+    else:
+        # this was a cuboid topology, let's create the list of links
+        links = make_network_cuboid(gridr,gridc,gridl)
+        # these are always undirected
+        digraph = False
+        # and now fake it as a network
+        args.network = True
 
 
     #####
