@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# this should be called with a variable PYTH pointing to the proper python executable
+# such as PYTH=python3 ./run_all_tests.sh
+
 # create a log file
 log="$(date +"%FT%H%M%S").log"
 touch $log
