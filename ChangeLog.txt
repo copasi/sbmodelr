@@ -1,3 +1,5 @@
+Wed Mar 13 2024
+  Created MEC.py (model extender for COPASI)
 Fri Mar 22 2024
   Migrated code from MEC.py, renamed to sbmodelr
 Fri Nov  8 2024 - version 1.0
