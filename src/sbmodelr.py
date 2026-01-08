@@ -13,16 +13,16 @@
 # v. 1.0: baseline functionality
 # v. 1.1: bugfix allowing models to have species in more than one
 #         compartment with same name
+# v. 1.2: rationalize all topologies through network representation
 
-#TODO: v.1.2: incorporate Maya's additions (vivarium mode)
-#TODO: v.1.3: rationalize all topologies through network representation
+#TODO: v.1.3: incorporate Maya's additions (vivarium mode)
 #TODO: v.1.4: gene regulation by adding corresponding protein?
 #TODO: WISH LIST
 #TODO: binding between units?  (would nedd to select A,B and bind each one on each side)
 #TODO: modification between units? (would need to select species and reaction)
 #TODO: hexagonal arrays? (please no!)
 
-__version__ = "1.3"
+__version__ = "1.2"
 
 import os
 import re
@@ -245,19 +245,6 @@ def read_network(network_file):
 
 # function to create a network connections for a 2D matrix
 def make_network_cuboid(rows,cols,lines):
-    # error checking
-    if( rows*cols*lines == 0 ):
-        print(f'ERROR calling make_network_cuboid() with zero rows, cols, or lines')
-        exit()
-    if( rows<0 or cols<0 or lines<0 ):
-        print(f'ERROR calling make_network_cuboid() with negative arguments')
-        exit()
-    if( rows == 1 ):
-        print(f'ERROR calling make_network_cuboid() with a single row')
-        exit()
-    if( cols == 1 and lines > 1 ):
-        print(f'ERROR calling make_network_cuboid() with cols=1 and lines>1')
-        exit()
     # check dimensionality
     dim=0
     if(rows>1):
@@ -511,6 +498,9 @@ def main():
 
     if(nmodels==1):
         print("ERROR: Nothing to do, one copy only is the same as the original model!\nAt least one of rows, columns or layers must be larger than 1.\n")
+        exit()
+    if( c==1 and l>1 ):
+        print(f'ERROR lines>1 but cols=1; switch their values!')
         exit()
 
     # check dimensionality
@@ -1207,271 +1197,93 @@ def main():
                     print(f'ERROR: species transport of type \'{ttype}\' is not allowed.')
                     exit()
                 # add a transport reaction for each neighbour
-                if( dim == 1):
-                    # add transport between species and the medium which is always reversible
-                    if(args.add_medium):
-                        for r in range(gridr):
-                            suffa = f'{r+1}'
-                            rname = f't_{sp}_{suffa}-medium'
-                            rscheme = f'{sp}_{suffa} = {sp}_medium'
+
+                # add transport between species and the medium which is always reversible
+                if(args.add_medium):
+                    for r in range(gridr):
+                        suffa = f'{r+1}'
+                        rname = f't_{sp}_{suffa}-medium'
+                        rscheme = f'{sp}_{suffa} = {sp}_medium'
+                        if( ttype == 'a' ):
+                            thisrateconst = rateconst
+                            if( args.cnoise ):
+                                # if we add noise to couplings, then we need 1 parameter per reaction
+                                (level, dist) = args.cnoise
+                                thisrateconst = f'k_{sp}_transport_{suffa}-medium'
+                                v = addnoise(trate,float(level),dist)
+                                add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
+                            rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
+                            add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
+                        elif( ttype == 'h' ):
+                            thisvmaxconst = vmaxconst
+                            if( args.cnoise ):
+                                # if we add noise to couplings, then we need 1 vmax per reaction
+                                (level, dist) = args.cnoise
+                                thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
+                                v = addnoise(tVmax,float(level),dist)
+                                add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
+                            rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
+                            add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
+
+                if( args.network ):
+                    for link in links:
+                        suffa = f'{link[0]}'
+                        suffb = f'{link[1]}'
+                        rname = f't_{sp}_{suffa}-{suffb}'
+                        # check whether reversible or irreversible
+                        if digraph:
+                            # check if we have a self-connection and ignore if type a or m
+                            if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
+                                print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -> {suffb}')
+                                continue
+                            rscheme = f'{sp}_{suffa} -> {sp}_{suffb}'
                             if( ttype == 'a' ):
                                 thisrateconst = rateconst
                                 if( args.cnoise ):
                                     # if we add noise to couplings, then we need 1 parameter per reaction
                                     (level, dist) = args.cnoise
-                                    thisrateconst = f'k_{sp}_transport_{suffa}-medium'
+                                    thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
                                     v = addnoise(trate,float(level),dist)
                                     add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
+                                rmap = {'k1': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
+                                add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (irreversible)' )
+                            elif( ttype == 'h' ):
+                                thisvmaxconst = vmaxconst
+                                if( args.cnoise ):
+                                    # if we add noise to couplings, then we need 1 vmax per reaction
+                                    (level, dist) = args.cnoise
+                                    thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
+                                    v = addnoise(tVmax,float(level),dist)
+                                    add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
+                                rmap = {'V': thisvmaxconst, 'Shalve': kmconst, 'h': hconst, 'substrate': f'{sp}_{suffa}'}
+                                add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Cooperativity' )
+
+                        else:
+                            # check if we have a self-connection and ignore if type a or m
+                            if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
+                                print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -- {suffb}')
+                            rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
+                            if( ttype == 'a' ):
+                                thisrateconst = rateconst
+                                if( args.cnoise ):
+                                    # if we add noise to couplings, then we need 1 parameter per reaction
+                                    (level, dist) = args.cnoise
+                                    thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
+                                    v = addnoise(trate,float(level),dist)
+                                    add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
+                                rmap = {'k1': thisrateconst, 'k2': rateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
                                 add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
                             elif( ttype == 'h' ):
                                 thisvmaxconst = vmaxconst
                                 if( args.cnoise ):
                                     # if we add noise to couplings, then we need 1 vmax per reaction
                                     (level, dist) = args.cnoise
-                                    thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
+                                    thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
                                     v = addnoise(tVmax,float(level),dist)
                                     add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
+                                rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
                                 add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
 
-                    if( args.network ):
-                        for link in links:
-                            suffa = f'{link[0]}'
-                            suffb = f'{link[1]}'
-                            rname = f't_{sp}_{suffa}-{suffb}'
-                            # check whether reversible or irreversible
-                            if digraph:
-                                # check if we have a self-connection and ignore if type a or m
-                                if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
-                                    print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -> {suffb}')
-                                    continue
-                                rscheme = f'{sp}_{suffa} -> {sp}_{suffb}'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (irreversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Shalve': kmconst, 'h': hconst, 'substrate': f'{sp}_{suffa}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Cooperativity' )
-
-                            else:
-                                # check if we have a self-connection and ignore if type a or m
-                                if( (suffa == suffb) and ( ttype == 'a' or ttype == 'h' ) ):
-                                    print(f' Warning: transport on the same unit not allowed, ignoring {suffa} -- {suffb}')
-                                rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'k2': rateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                elif( dim == 2 ):
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            suffa = f'{r+1},{c+1}'
-                            if(args.add_medium):
-                                rname = f't_{sp}_{suffa}-medium'
-                                rscheme = f'{sp}_{suffa} = {sp}_medium'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-medium'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                            if( c+1 < gridc ):
-                                suffb = f'{r+1},{c+2}'
-                                rname = f't_{sp}_{suffa}-{suffb}'
-                                rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                            if( r+1 < gridr ):
-                                suffb = f'{r+2},{c+1}'
-                                rname = f't_{sp}_{suffa}-{suffb}'
-                                rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                if( ttype == 'a' ):
-                                    thisrateconst = rateconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(trate,float(level),dist)
-                                        add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                    rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                elif( ttype == 'h' ):
-                                    thisvmaxconst = vmaxconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 vmax per reaction
-                                        (level, dist) = args.cnoise
-                                        thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                        v = addnoise(tVmax,float(level),dist)
-                                        add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                    rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                    add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                elif( dim == 3 ):
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            for l in range(gridl):
-                                suffa = f'{r+1},{c+1},{l+1}'
-                                if(args.add_medium):
-                                    rname = f't_{sp}_{suffa}-medium'
-                                    rscheme = f'{sp}_{suffa} = {sp}_medium'
-                                    if( ttype == 'a' ):
-                                        thisrateconst = rateconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisrateconst = f'k_{sp}_transport_{suffa}-medium'
-                                            v = addnoise(trate,float(level),dist)
-                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                        rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_medium'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                    elif( ttype == 'h' ):
-                                        thisvmaxconst = vmaxconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 vmax per reaction
-                                            (level, dist) = args.cnoise
-                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-medium'
-                                            v = addnoise(tVmax,float(level),dist)
-                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                        rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_medium'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                                if( c+1 < gridc ):
-                                    suffb = f'{r+1},{c+2},{l+1}'
-                                    rname = f't_{sp}_{suffa}-{suffb}'
-                                    rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                    if( ttype == 'a' ):
-                                        thisrateconst = rateconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(trate,float(level),dist)
-                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                        rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                    elif( ttype == 'h' ):
-                                        thisvmaxconst = vmaxconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 vmax per reaction
-                                            (level, dist) = args.cnoise
-                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(tVmax,float(level),dist)
-                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                        rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                                if( r+1 < gridr ):
-                                    suffb = f'{r+2},{c+1},{l+1}'
-                                    rname = f't_{sp}_{suffa}-{suffb}'
-                                    rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                    if( ttype == 'a' ):
-                                        thisrateconst = rateconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(trate,float(level),dist)
-                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                        rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                    elif( ttype == 'h' ):
-                                        thisvmaxconst = vmaxconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 vmax per reaction
-                                            (level, dist) = args.cnoise
-                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(tVmax,float(level),dist)
-                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                        rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                                if( l+1 < gridl ):
-                                    suffb = f'{r+1},{c+1},{l+2}'
-                                    rname = f't_{sp}_{suffa}-{suffb}'
-                                    rscheme = f'{sp}_{suffa} = {sp}_{suffb}'
-                                    if( ttype == 'a' ):
-                                        thisrateconst = rateconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisrateconst = f'k_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(trate,float(level),dist)
-                                            add_parameter(name=thisrateconst, initial_value=v, model=newmodel)
-                                        rmap = {'k1': thisrateconst, 'k2': thisrateconst, 'substrate': f'{sp}_{suffa}', 'product': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Mass action (reversible)' )
-                                    elif( ttype == 'h' ):
-                                        thisvmaxconst = vmaxconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 vmax per reaction
-                                            (level, dist) = args.cnoise
-                                            thisvmaxconst = vmaxconst = f'Vmax_{sp}_transport_{suffa}-{suffb}'
-                                            v = addnoise(tVmax,float(level),dist)
-                                            add_parameter(name=thisvmaxconst, initial_value=v, model=newmodel)
-                                        rmap = {'V': thisvmaxconst, 'Km': kmconst, 'h': hconst, 'S': f'{sp}_{suffa}', 'P': f'{sp}_{suffb}'}
-                                        add_reaction(model=newmodel, name=rname, scheme=rscheme, mapping=rmap, function='Hill Transport' )
-                else:
-                    # insanity error
-                    print('ERROR: this should not happen, dim is not 1,2 or 3. Contact developer!')
-                    exit()
             else:
                 # error
                 print( f'ERROR: Species {sp} does not exist in the model' )
@@ -1617,163 +1429,6 @@ def main():
                                 odebexpr = bode.loc[obname].at['expression'] + f' + Values[{syngc}] * Values[{brname}] * ( Values[{thissynvsyn}] - Values[{oaname}] )'
                             # obname is affected by all types of connection so we can only update it here, after if/elif statements
                             set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                elif( dim == 2 ):
-                    if(args.add_medium and linktype=='d'):
-                        # we first need to add the global quantity for the medium
-                        mediumode = f'{ode}_medium'
-                        medexp = ''
-                        add_parameter(mediumode, type='ode', expression=medexp, initial_value=mparams.loc[ode].at['initial_value'], model=newmodel)
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            suffa = f'{r+1},{c+1}'
-                            oaname = f'{ode}_{suffa}'
-                            if(args.add_medium and linktype=='d'):
-                                # get ode to get expression
-                                aode = get_parameters(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to medium ODE
-                                medexp = add_diffusive_term(medexp, thisdiffconst,f'Values[{oaname}]',f'Values[{mediumode}]')
-                                # add term to target ODE
-                                odeaexpr = add_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,f'Values[{mediumode}]', f'Values[{oaname}]')
-                                set_parameters(mediumode, exact=True, type='ode', expression=medexp, model=newmodel)
-                                set_parameters(oaname, exact=True, type='ode', expression=odeaexpr, model=newmodel)
-                            if( c+1 < gridc ):
-                                suffb = f'{r+1},{c+2}'
-                                obname = f'{ode}_{suffb}'
-                                # get ode to get expression
-                                aode = get_parameters(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to target ODE
-                                odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Values[{obname}]', f'Values[{oaname}]')
-                                set_parameters(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                # get ode to get expression
-                                bode = get_parameters(obname, exact=True, model=newmodel)
-                                # add term to target ODE
-                                odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Values[{oaname}]', f'Values[{obname}]')
-                                set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                            if( r+1 < gridr ):
-                                suffb = f'{r+2},{c+1}'
-                                obname = f'{ode}_{suffb}'
-                                # get ode to get expression
-                                aode = get_parameters(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to target ODE
-                                odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Values[{obname}]', f'Values[{oaname}]')
-                                set_parameters(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                # get ode to get expression
-                                bode = get_parameters(obname, exact=True, model=newmodel)
-                                # add term to target ODE
-                                odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Values[{oaname}]', f'Values[{obname}]')
-                                set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                elif( dim == 3 ):
-                    if(args.add_medium and linktype=='d'):
-                        # we first need to add the global quantity for the medium
-                        mediumode = f'{ode}_medium'
-                        medexp = ''
-                        add_parameter(mediumode, type='ode', expression=medexp, initial_value=mparams.loc[ode].at['initial_value'], model=newmodel)
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            for l in range(gridl):
-                                suffa = f'{r+1},{c+1},{l+1}'
-                                oaname = f'{ode}_{suffa}'
-                                if(args.add_medium and linktype=='d'):
-                                    # get ode to get expression
-                                    aode = get_parameters(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to medium ODE
-                                    medexp = add_diffusive_term(medexp, thisdiffconst,f'Values[{oaname}]',f'Values[{mediumode}]')
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,f'Values[{mediumode}]', f'Values[{oaname}]')
-                                    set_parameters(mediumode, exact=True, type='ode', expression=medexp, model=newmodel)
-                                    set_parameters(oaname, exact=True, type='ode', expression=odeaexpr, model=newmodel)
-                                if( c+1 < gridc ):
-                                    suffb = f'{r+1},{c+2},{l+1}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_parameters(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Values[{obname}]', f'Values[{oaname}]')
-                                    set_parameters(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_parameters(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Values[{oaname}]', f'Values[{obname}]')
-                                    set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                                if( r+1 < gridr ):
-                                    suffb = f'{r+2},{c+1},{l+1}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_parameters(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Values[{obname}]', f'Values[{oaname}]')
-                                    set_parameters(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_parameters(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Values[{oaname}]', f'Values[{obname}]')
-                                    set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                                if( l+1 < gridl ):
-                                    suffb = f'{r+1},{c+1},{l+2}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_parameters(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Values[{obname}]', f'Values[{oaname}]')
-                                    set_parameters(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_parameters(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Values[{oaname}]', f'Values[{obname}]')
-                                    set_parameters(obname, exact=True, expression=odebexpr, model=newmodel)
-                else:
-                    # insanity error
-                    print('ERROR: this should not happen, dim is not 1,2 or 3. Contact developer!')
-                    exit()
             # check if the ODE is a species
             elif( (mspecs is not None) and (ode in mspecs.index) ):
                 if( mspecs.loc[ode].at['type'] != 'ode' ):
@@ -1785,240 +1440,90 @@ def main():
                     mediumode = f'{ode}_medium'
                     medexp = ''
                     add_species(mediumode, compartment_name=medium_name, type='ode', expression=medexp, initial_concentration=mspecs.loc[ode].at['initial_concentration'], model=newmodel)
-                if( dim == 1):
-                    # add coupling between unit and the medium
-                    if(args.add_medium and linktype=='d'):
-                        for r in range(gridr):
-                            # name of ode in this unit
-                            suffa = f'{r+1}'
-                            oname = f'{ode}_{suffa}'
+
+
+
+
+                # add coupling between unit and the medium
+                if(args.add_medium and linktype=='d'):
+                    for r in range(gridr):
+                        # name of ode in this unit
+                        suffa = f'{r+1}'
+                        oname = f'{ode}_{suffa}'
+                        thisdiffconst = diffconst
+                        if( args.cnoise ):
+                            # if we add noise to couplings, then we need 1 parameter per reaction
+                            (level, dist) = args.cnoise
+                            thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
+                            v = addnoise(coupleconst,float(level),dist)
+                            add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
+                        # add term to medium ODE
+                        medexp = add_diffusive_term( medexp, thisdiffconst, f'[{oname}]', f'[{mediumode}]')
+                        set_species(mediumode, exact=True, expression=medexp, model=newmodel)
+                        # get target ode to get expression
+                        tode = get_species(oname, exact=True, model=newmodel)
+                        # add term to target ODE
+                        odexpr = add_diffusive_term( tode.loc[oname].at['expression'], thisdiffconst, f'[{mediumode}]', f'[{oname}]' )
+                        set_species(oname, exact=True, expression=odexpr, model=newmodel)
+                if( args.network ):
+                    for link in links:
+                        if( link[0] == link[1]):
+                            print(f' Warning: diffusive coupling onto the same unit not allowed, ignoring {link[0]} -> {link[1]}')
+                            continue
+                        suffa = f'{link[0]}'
+                        oaname = f'{ode}_{suffa}'
+                        suffb = f'{link[1]}'
+                        obname = f'{ode}_{suffb}'
+                        # get ode expressions from a and b
+                        aode = get_species(oaname, exact=True, model=newmodel)
+                        bode = get_species(obname, exact=True, model=newmodel)
+                        if( linktype=='d' ):
                             thisdiffconst = diffconst
                             if( args.cnoise ):
                                 # if we add noise to couplings, then we need 1 parameter per reaction
                                 (level, dist) = args.cnoise
-                                thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
+                                thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
                                 v = addnoise(coupleconst,float(level),dist)
                                 add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                            # add term to medium ODE
-                            medexp = add_diffusive_term( medexp, thisdiffconst, f'[{oname}]', f'[{mediumode}]')
-                            set_species(mediumode, exact=True, expression=medexp, model=newmodel)
-                            # get target ode to get expression
-                            tode = get_species(oname, exact=True, model=newmodel)
-                            # add term to target ODE
-                            odexpr = add_diffusive_term( tode.loc[oname].at['expression'], thisdiffconst, f'[{mediumode}]', f'[{oname}]' )
-                            set_species(oname, exact=True, expression=odexpr, model=newmodel)
-                    if( args.network ):
-                        for link in links:
-                            if( link[0] == link[1]):
-                                print(f' Warning: diffusive coupling onto the same unit not allowed, ignoring {link[0]} -> {link[1]}')
-                                continue
-                            suffa = f'{link[0]}'
-                            oaname = f'{ode}_{suffa}'
-                            suffb = f'{link[1]}'
-                            obname = f'{ode}_{suffb}'
-                            # get ode expressions from a and b
-                            aode = get_species(oaname, exact=True, model=newmodel)
-                            bode = get_species(obname, exact=True, model=newmodel)
-                            if( linktype=='d' ):
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                if digraph:
-                                    # add term to ODE a
-                                    odeaexpr = add_irr_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,'-',f'[{oaname}]')
-                                    # add term to ODE b
-                                    odebexpr = add_irr_diffusive_term(bode.loc[obname].at['expression'], thisdiffconst,'+',f'[{oaname}]')
-                                else:
-                                    # add term to ODE a
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                    # add term to ODE b
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                # we update oaname species here since it won't be modified in other types of connection
-                                set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                            elif( linktype=='s' ):
-                                thissyntaur = syntaur
-                                thissyntaud = syntaud
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 tau parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thissyntaur = f'tau_r_{ode}_synapse_{suffa}-{suffb}'
-                                    thissyntaud = f'tau_d_{ode}_synapse_{suffa}-{suffb}'
-                                    r = addnoise(taurinit,float(level),dist)
-                                    d = addnoise(taudinit,float(level),dist)
-                                    add_parameter(name=thissyntaur, initial_value=r, model=newmodel)
-                                    add_parameter(name=thissyntaud, initial_value=d, model=newmodel)
-                                # add a new ODE to represent the proportion of bound post-synaptic receptor
-                                brname = f'br_{ode}_{suffa},{suffb}'
-                                brexp = f'( 1 / Values[{thissyntaur}] - 1 / Values[{thissyntaud}] ) * ( 1 - Values[{brname}] ) / ( 1 + exp( Values[{synv0}] - [{oaname}] ) ) -  Values[{brname}] / Values[{thissyntaud}]'
-                                add_parameter(brname, type='ode', expression=brexp, initial_value=0.5, model=newmodel)
-                                # add a synaptic maximum conductance parameter
-                                syngc = f'g_c_{ode}_{suffa},{suffb}_synapse'
-                                if( args.cnoise ):
-                                    gc = addnoise(gcinit,float(level),dist)
-                                else:
-                                    gc = gcinit
-                                add_parameter(syngc, type='fixed', initial_value=gc, model=newmodel)
-                                # add a term to the postsynaptic ode corresponding to the voltage that is proportional to the bound receptor
-                                odebexpr = bode.loc[obname].at['expression'] + f' + Values[{syngc}] * Values[{brname}] * ( Values[{synvsyn}] - [{oaname}] )'
-                            # update species obname here as it was changed by all types
-                            set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                elif( dim == 2 ):
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            suffa = f'{r+1},{c+1}'
-                            oaname = f'{ode}_{suffa}'
-                            if(args.add_medium and linktype=='d'):
-                                # add term to medium ODE
-                                medexp = add_diffusive_term( medexp, diffconst, f'[{oaname}]', f'[{mediumode}]')
-                                set_species(mediumode, exact=True, expression=medexp, model=newmodel)
-                                # get ode to get expression
-                                aode = get_species(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to medium ODE
-                                medexp = add_diffusive_term( medexp, thisdiffconst, f'[{oname}]', f'[{mediumode}]')
-                                set_species(mediumode, exact=True, expression=medexp, model=newmodel)
-                                # add term to target ODE
-                                odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{mediumode}]', f'[{oaname}]' )
-                                set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                            if( c+1 < gridc ):
-                                suffb = f'{r+1},{c+2}'
-                                obname = f'{ode}_{suffb}'
-                                # get ode to get expression
-                                aode = get_species(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to target ODE
+                            if digraph:
+                                # add term to ODE a
+                                odeaexpr = add_irr_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,'-',f'[{oaname}]')
+                                # add term to ODE b
+                                odebexpr = add_irr_diffusive_term(bode.loc[obname].at['expression'], thisdiffconst,'+',f'[{oaname}]')
+                            else:
+                                # add term to ODE a
                                 odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                # get ode to get expression
-                                bode = get_species(obname, exact=True, model=newmodel)
-                                # add term to target ODE
+                                # add term to ODE b
                                 odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                            if( r+1 < gridr ):
-                                suffb = f'{r+2},{c+1}'
-                                obname = f'{ode}_{suffb}'
-                                # get ode to get expression
-                                aode = get_species(oaname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                # add term to target ODE
-                                odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                # get ode to get expression
-                                bode = get_species(obname, exact=True, model=newmodel)
-                                # add term to target ODE
-                                odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                elif( dim == 3 ):
-                    for r in range(gridr):
-                        for c in range(gridc):
-                            for l in range(gridl):
-                                suffa = f'{r+1},{c+1},{l+1}'
-                                oaname = f'{ode}_{suffa}'
-                                if(args.add_medium and linktype=='d'):
-                                    # add term to medium ODE
-                                    medexp = add_diffusive_term( medexp, diffconst, f'[{oname}]', f'[{mediumode}]')
-                                    set_species(mediumode, exact=True, expression=medexp, model=newmodel)
-                                    # get ode to get expression
-                                    aode = get_species(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-medium'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to medium ODE
-                                    medexp = add_diffusive_term( medexp, thisdiffconst, f'[{oname}]', f'[{mediumode}]')
-                                    set_species(mediumode, exact=True, expression=medexp, model=newmodel)
-                                    # add term to target ODE
-                                    odeaxpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{mediumode}]', f'[{oname}]' )
-                                    set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                if( c+1 < gridc ):
-                                    suffb = f'{r+1},{c+2},{l+1}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_species(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                    set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_species(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                    set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                                if( r+1 < gridr ):
-                                    suffb = f'{r+2},{c+1},{l+1}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_species(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                    set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_species(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                    set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                                if( l+1 < gridl ):
-                                    suffb = f'{r+1},{c+1},{l+2}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_species(oaname, exact=True, model=newmodel)
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    # add term to target ODE
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'[{obname}]', f'[{oaname}]')
-                                    set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_species(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'[{oaname}]', f'[{obname}]')
-                                    set_species(obname, exact=True, expression=odebexpr, model=newmodel)
-                else:
-                    # insanity error
-                    print('ERROR: this should not happen, dim is not 1,2 or 3. Contact developer!')
-                    exit()
+                            # we update oaname species here since it won't be modified in other types of connection
+                            set_species(oaname, exact=True, expression=odeaexpr, model=newmodel)
+                        elif( linktype=='s' ):
+                            thissyntaur = syntaur
+                            thissyntaud = syntaud
+                            if( args.cnoise ):
+                                # if we add noise to couplings, then we need 1 tau parameter per reaction
+                                (level, dist) = args.cnoise
+                                thissyntaur = f'tau_r_{ode}_synapse_{suffa}-{suffb}'
+                                thissyntaud = f'tau_d_{ode}_synapse_{suffa}-{suffb}'
+                                r = addnoise(taurinit,float(level),dist)
+                                d = addnoise(taudinit,float(level),dist)
+                                add_parameter(name=thissyntaur, initial_value=r, model=newmodel)
+                                add_parameter(name=thissyntaud, initial_value=d, model=newmodel)
+                            # add a new ODE to represent the proportion of bound post-synaptic receptor
+                            brname = f'br_{ode}_{suffa},{suffb}'
+                            brexp = f'( 1 / Values[{thissyntaur}] - 1 / Values[{thissyntaud}] ) * ( 1 - Values[{brname}] ) / ( 1 + exp( Values[{synv0}] - [{oaname}] ) ) -  Values[{brname}] / Values[{thissyntaud}]'
+                            add_parameter(brname, type='ode', expression=brexp, initial_value=0.5, model=newmodel)
+                            # add a synaptic maximum conductance parameter
+                            syngc = f'g_c_{ode}_{suffa},{suffb}_synapse'
+                            if( args.cnoise ):
+                                gc = addnoise(gcinit,float(level),dist)
+                            else:
+                                gc = gcinit
+                            add_parameter(syngc, type='fixed', initial_value=gc, model=newmodel)
+                            # add a term to the postsynaptic ode corresponding to the voltage that is proportional to the bound receptor
+                            odebexpr = bode.loc[obname].at['expression'] + f' + Values[{syngc}] * Values[{brname}] * ( Values[{synvsyn}] - [{oaname}] )'
+                        # update species obname here as it was changed by all types
+                        set_species(obname, exact=True, expression=odebexpr, model=newmodel)
 
             # check if the ODE is a compartment
             elif( (mcomps is not None) and (ode in mcomps.index) ):
@@ -2031,156 +1536,44 @@ def main():
                     if(linktype=='s'):
                         print(f'ERROR: {ode} is a compartment ODE, but compartments cannot have synaptic links')
                         exit()
-                    if( dim == 1):
-                        # for compartments we do nothing about the medium...
-                        # let's just work on the network
-                        if( args.network ):
-                            for link in links:
-                                if( link[0] == link[1]):
-                                    print(f' Warning: diffusive coupling onto the same unit not allowed, ignoring {link[0]} -> {link[1]}')
-                                    continue
-                                suffa = f'{link[0]}'
-                                oaname = f'{ode}_{suffa}'
-                                suffb = f'{link[1]}'
-                                obname = f'{ode}_{suffb}'
-                                # get ode a to get expression
-                                aode = get_compartments(oaname, exact=True, model=newmodel)
-                                # get ode b to get expression
-                                bode = get_compartments(obname, exact=True, model=newmodel)
-                                thisdiffconst = diffconst
-                                if( args.cnoise ):
-                                    # if we add noise to couplings, then we need 1 parameter per reaction
-                                    (level, dist) = args.cnoise
-                                    thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                    v = addnoise(coupleconst,float(level),dist)
-                                    add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                if digraph:
-                                    # add term to ODE a
-                                    odeaexpr = add_irr_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,'-',f'Compartments[{oaname}].Volume')
-                                    # add term to ODE b
-                                    odebexpr = add_irr_diffusive_term(bode.loc[obname].at['expression'], thisdiffconst,'+',f'Compartments[{oaname}].Volume')
-                                else:
-                                    # add term to ODE a
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                    # add term to ODE b
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                    elif( dim == 2 ):
-                        for r in range(gridr):
-                            for c in range(gridc):
-                                suffa = f'{r+1},{c+1}'
-                                oaname = f'{ode}_{suffa}'
-                                if( c+1 < gridc ):
-                                    suffb = f'{r+1},{c+2}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_compartments(oaname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                    set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_compartments(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                    set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                                if( r+1 < gridr ):
-                                    suffb = f'{r+2},{c+1}'
-                                    obname = f'{ode}_{suffb}'
-                                    # get ode to get expression
-                                    aode = get_compartments(oaname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    thisdiffconst = diffconst
-                                    if( args.cnoise ):
-                                        # if we add noise to couplings, then we need 1 parameter per reaction
-                                        (level, dist) = args.cnoise
-                                        thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                        v = addnoise(coupleconst,float(level),dist)
-                                        add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                    odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                    set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                    # get ode to get expression
-                                    bode = get_compartments(obname, exact=True, model=newmodel)
-                                    # add term to target ODE
-                                    odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                    set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                    elif( dim == 3 ):
-                        for r in range(gridr):
-                            for c in range(gridc):
-                                for l in range(gridl):
-                                    suffa = f'{r+1},{c+1},{l+1}'
-                                    oaname = f'{ode}_{suffa}'
-                                    if( c+1 < gridc ):
-                                        suffb = f'{r+1},{c+2},{l+1}'
-                                        obname = f'{ode}_{suffb}'
-                                        # get ode to get expression
-                                        aode = get_compartments(oaname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        thisdiffconst = diffconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                            v = addnoise(coupleconst,float(level),dist)
-                                            add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                        odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                        set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                        # get ode to get expression
-                                        bode = get_compartments(obname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                        set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                                    if( r+1 < gridr ):
-                                        suffb = f'{r+2},{c+1},{l+1}'
-                                        obname = f'{ode}_{suffb}'
-                                        # get ode to get expression
-                                        aode = get_compartments(oaname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        thisdiffconst = diffconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                            v = addnoise(coupleconst,float(level),dist)
-                                            add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                        odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                        set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                        # get ode to get expression
-                                        bode = get_compartments(obname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                        set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                                    if( l+1 < gridl ):
-                                        suffb = f'{r+1},{c+1},{l+2}'
-                                        obname = f'{ode}_{suffb}'
-                                        # get ode to get expression
-                                        aode = get_compartments(oaname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        thisdiffconst = diffconst
-                                        if( args.cnoise ):
-                                            # if we add noise to couplings, then we need 1 parameter per reaction
-                                            (level, dist) = args.cnoise
-                                            thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
-                                            v = addnoise(coupleconst,float(level),dist)
-                                            add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
-                                        odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
-                                        set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
-                                        # get ode to get expression
-                                        bode = get_compartments(obname, exact=True, model=newmodel)
-                                        # add term to target ODE
-                                        odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
-                                        set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
-                    else:
-                        # insanity error
-                        print('ERROR: this should not happen, dim is not 1,2 or 3. Contact developer!')
-                        exit()
+
+
+
+                    # for compartments we do nothing about the medium...
+                    # let's just work on the network
+                    if( args.network ):
+                        for link in links:
+                            if( link[0] == link[1]):
+                                print(f' Warning: diffusive coupling onto the same unit not allowed, ignoring {link[0]} -> {link[1]}')
+                                continue
+                            suffa = f'{link[0]}'
+                            oaname = f'{ode}_{suffa}'
+                            suffb = f'{link[1]}'
+                            obname = f'{ode}_{suffb}'
+                            # get ode a to get expression
+                            aode = get_compartments(oaname, exact=True, model=newmodel)
+                            # get ode b to get expression
+                            bode = get_compartments(obname, exact=True, model=newmodel)
+                            thisdiffconst = diffconst
+                            if( args.cnoise ):
+                                # if we add noise to couplings, then we need 1 parameter per reaction
+                                (level, dist) = args.cnoise
+                                thisdiffconst = f'k_{ode}_coupling_{suffa}-{suffb}'
+                                v = addnoise(coupleconst,float(level),dist)
+                                add_parameter(name=thisdiffconst, initial_value=v, model=newmodel)
+                            if digraph:
+                                # add term to ODE a
+                                odeaexpr = add_irr_diffusive_term(aode.loc[oaname].at['expression'], thisdiffconst,'-',f'Compartments[{oaname}].Volume')
+                                # add term to ODE b
+                                odebexpr = add_irr_diffusive_term(bode.loc[obname].at['expression'], thisdiffconst,'+',f'Compartments[{oaname}].Volume')
+                            else:
+                                # add term to ODE a
+                                odeaexpr = add_diffusive_term( aode.loc[oaname].at['expression'], thisdiffconst, f'Compartments[{obname}].Volume', f'Compartments[{oaname}].Volume')
+                                # add term to ODE b
+                                odebexpr = add_diffusive_term( bode.loc[obname].at['expression'], thisdiffconst, f'Compartments[{oaname}].Volume', f'Compartments[{obname}].Volume')
+                            set_compartment(oaname, exact=True, expression=odeaexpr, model=newmodel)
+                            set_compartment(obname, exact=True, expression=odebexpr, model=newmodel)
+
             # not an entity in this model
             else:
                 print(f'ERROR: {ode} is not a valid model entity')
