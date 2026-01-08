@@ -4,6 +4,7 @@ Processing ../sources/IrreversibleReactionChain.cps
   Compartments:      1	(Fixed: 1, Assignment: 0, ODE: 0)
   Global quantities: 0	(Fixed: 0, Assignment: 0, ODE: 0)
   Events:            0	(Only time-dependent: 0, variable-dependent: 0)
+  Network:           undirected	(Nodes: 4, Edges: 4)
 
 created new model IRC_2x2.cps with a 2D set of 4 replicas (2x2) of ../sources/IrreversibleReactionChain.cps
 
