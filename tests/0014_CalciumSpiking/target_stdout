@@ -4,6 +4,7 @@ Processing ../sources/CalciumSpiking.cps
   Compartments:      2	(Fixed: 2, Assignment: 0, ODE: 0)
   Global quantities: 17	(Fixed: 17, Assignment: 0, ODE: 0)
   Events:            0	(Only time-dependent: 0, variable-dependent: 0)
+  Network:           undirected	(Nodes: 4, Edges: 4)
 
 created new model CalciumSpiking_2x2.cps with a 2D set of 4 replicas (2x2) of ../sources/CalciumSpiking.cps
 
