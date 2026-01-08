@@ -4,6 +4,7 @@ Processing ../sources/BindingKa.cps
   Compartments:      1	(Fixed: 1, Assignment: 0, ODE: 0)
   Global quantities: 3	(Fixed: 2, Assignment: 1, ODE: 0)
   Events:            0	(Only time-dependent: 0, variable-dependent: 0)
+  Network:           undirected	(Nodes: 100, Edges: 0)
 
  Warning: in Parameter scan task the scanned or sampled items were converted to those of the first unit only.
 created new model BindingKa_100.cps with a set of 100 replicas of ../sources/BindingKa.cps
