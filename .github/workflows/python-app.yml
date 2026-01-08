@@ -37,4 +37,4 @@ jobs:
     - name: run tests
       run: |
         cd tests
-        ./run_all_tests.sh
+        PYTH=python ./run_all_tests.sh
