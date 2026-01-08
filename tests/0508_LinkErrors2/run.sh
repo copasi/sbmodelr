@@ -55,17 +55,17 @@ fi
 $PYTH ../../src/sbmodelr.py -g G ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that the correct error is issued
-if ! grep -q "ERROR: regulatory synthesis reactions can only be created with dimension 1 and through a network (use option -n)" output; then
+if ! grep -q "ERROR: regulatory connections require a directed graph" output; then
   printf 'FAIL %s\n' "${test}"
   let "fail = $fail + 32"
   let "rr = 1"
 fi
 
-# test regulatory link on 2D grid
+# test regulatory link on 1D grid
 $PYTH ../../src/sbmodelr.py -g G ../sources/GeneExpressionUnit.cps 2 > output 2>&1
 
 # check that the correct error is issued
-if ! grep -q "ERROR: regulatory synthesis reactions can only be created with dimension 1 and through a network (use option -n)" output; then
+if ! grep -q "ERROR: regulatory connections require a directed graph" output; then
   printf 'FAIL %s\n' "${test}"
   if [ "$rr" != 1 ] ; then
 	let "fail = $fail + 32"
