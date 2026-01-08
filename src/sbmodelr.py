@@ -30,7 +30,7 @@ import json #MA added
 import pandas as pd
 from basico import * 
 import subprocess
-from copasi_process_MA import create_vivarium_file
+from copasi_process import create_vivarium_file
 import warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
