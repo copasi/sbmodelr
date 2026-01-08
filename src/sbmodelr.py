@@ -580,25 +580,6 @@ def main():
                 if( (link[0] < 1) or (link[1] < 1) or (link[0] > nmodels) or (link[1] > nmodels) ):
                     print(f'ERROR: network file lists nodes with numbers outside [1,{nmodels}]')
                     exit(1)
-        # if we have a grn, we need to process edges and nodes a bit more
-        if( args.grn ):
-            # if it is not a digraph we should stop right here!
-            if not digraph:
-                print(f'ERROR: regulatory connections require a directed graph')
-                exit(2)
-            # dictionary of nodes and their in-degree (doesn't include nodes without inward edges)
-            regulated = dict()
-            # dictionary of nodes and their regulators
-            reglinks = dict()
-            for link in links:
-                # add one more value to the receiving node
-                regulated[link[1]] = regulated.get(link[1], 0) + 1
-                reglinks[link[1]] = reglinks.get(link[1], []) + [link[0]]
-            # dictionary of in-degrees and nodes with that in-degree (useful for creating rate laws)
-            indegrees = dict()
-            for k, v in regulated.items():
-                indegrees[v] = indegrees.get(v, []) + [k]
-            # indegrees is the inverse of regulated...
     else:
         # this was a cuboid topology, let's create the list of links
         links = make_network_cuboid(gridr,gridc,gridl)
@@ -606,6 +587,26 @@ def main():
         digraph = False
         # and now fake it as a network
         args.network = True
+
+    # if we have a grn, we need to process edges and nodes a bit more
+    if( args.grn ):
+        # if it is not a digraph we should stop right here!
+        if not digraph:
+            print(f'ERROR: regulatory connections require a directed graph')
+            exit(2)
+        # dictionary of nodes and their in-degree (doesn't include nodes without inward edges)
+        regulated = dict()
+        # dictionary of nodes and their regulators
+        reglinks = dict()
+        for link in links:
+            # add one more value to the receiving node
+            regulated[link[1]] = regulated.get(link[1], 0) + 1
+            reglinks[link[1]] = reglinks.get(link[1], []) + [link[0]]
+        # dictionary of in-degrees and nodes with that in-degree (useful for creating rate laws)
+        indegrees = dict()
+        for k, v in regulated.items():
+            indegrees[v] = indegrees.get(v, []) + [k]
+        # indegrees is the inverse of regulated...
 
 
     #####
