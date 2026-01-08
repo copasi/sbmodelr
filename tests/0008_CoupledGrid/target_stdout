@@ -4,6 +4,7 @@ Processing ../sources/Selkov-Wolf-Heinrich.cps
   Compartments:      1	(Fixed: 1, Assignment: 0, ODE: 0)
   Global quantities: 2	(Fixed: 2, Assignment: 0, ODE: 0)
   Events:            0	(Only time-dependent: 0, variable-dependent: 0)
+  Network:           undirected	(Nodes: 27, Edges: 54)
 
 created new model Wolf3x3x3Y.cps with a 3D set of 27 replicas (3x3x3) of ../sources/Selkov-Wolf-Heinrich.cps
 
