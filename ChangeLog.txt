@@ -1,0 +1,8 @@
+Fri Mar 22 2024
+  Migrated code from MEC.py, renamed to sbmodelr
+Fri Nov  8 2024 - version 1.0
+  First release
+Fri Oct 10 2025 - version 1.1
+  Fixed bug that originated from species with same name existing in different compartments (reported by Rashmi Kaldera Dissasekara)
+Thu Jan  8 2026 - version 1.2
+  Simplified code to generate cuboid topologies into a list of edges and remove topology logic from the code processing the model
