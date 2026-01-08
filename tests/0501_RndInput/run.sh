@@ -11,7 +11,7 @@ basenc --z85 -w 0 /dev/urandom | head -c 40000 > rndinput.cps
 fail=0
 
 # run sbmodelr
-sbmodelr -t B rndinput.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t B rndinput.cps 2 1> output 2> /dev/null
 
 if ! grep -Pq "ERROR: rndinput.cps failed to load." output; then
   printf 'FAIL %s\n' "${test}"
@@ -26,7 +26,7 @@ printf "<COPASI xmlns=\"http://www.copasi.org/static/schema\" versionMajor=\"4\"
 cat rndinput.cps >> rndinput2.cps
 
 # run sbmodelr
-sbmodelr -t B rndinput2.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t B rndinput2.cps 2 1> output 2> /dev/null
 
 if ! grep -Pq "ERROR: rndinput2.cps failed to load." output; then
   printf 'FAIL %s\n' "${test}"
@@ -37,7 +37,7 @@ fi
 mv rndinput.cps rndinput.xml
 
 # run sbmodelr
-sbmodelr -t B rndinput.xml 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t B rndinput.xml 2 1> output 2> /dev/null
 
 if ! grep -Pq "ERROR: rndinput.xml failed to load." output; then
   printf 'FAIL %s\n' "${test}"
@@ -50,7 +50,7 @@ printf "<sbml xmlns=\"http://www.sbml.org/sbml/level3/version1/core\" xmlns:layo
 cat rndinput.xml >> rndinput2.xml
 
 # run sbmodelr
-sbmodelr -t B rndinput2.xml 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t B rndinput2.xml 2 1> output 2> /dev/null
 
 if ! grep -Pq "ERROR: rndinput2.xml failed to load." output; then
   printf 'FAIL %s\n' "${test}"

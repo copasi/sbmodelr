@@ -5,7 +5,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr -d vesicle -n ../sources/twins.gv ../sources/shrink.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -d vesicle -n ../sources/twins.gv ../sources/shrink.cps 2 1> output 2> /dev/null
 
 fail=0
 

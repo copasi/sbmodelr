@@ -5,7 +5,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr -d blob -c 0.05 --pn blob 0.9 uni ../sources/blob.cps 3 3 3 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -d blob -c 0.05 --pn blob 0.9 uni ../sources/blob.cps 3 3 3 1> output 2> /dev/null
 
 fail=0
 

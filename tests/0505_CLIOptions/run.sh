@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # test negative number of units
-sbmodelr -t G ../sources/GeneExpressionUnit.cps -2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G ../sources/GeneExpressionUnit.cps -2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "sbmodelr: error: argument rows: -2 is an invalid negative value" output; then
@@ -16,7 +16,7 @@ if ! grep -q "sbmodelr: error: argument rows: -2 is an invalid negative value" o
 fi
 
 # test one unit only
-sbmodelr -t G ../sources/GeneExpressionUnit.cps 1 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G ../sources/GeneExpressionUnit.cps 1 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original model!" output; then
@@ -25,7 +25,7 @@ if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original mo
 fi
 
 # test one unit per dimension
-sbmodelr -t G ../sources/GeneExpressionUnit.cps 1 1 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G ../sources/GeneExpressionUnit.cps 1 1 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original model!" output; then
@@ -34,7 +34,7 @@ if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original mo
 fi
 
 # test one unit per dimension
-sbmodelr -t G ../sources/GeneExpressionUnit.cps 1 1 1 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G ../sources/GeneExpressionUnit.cps 1 1 1 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original model!" output; then
@@ -43,7 +43,7 @@ if ! grep -q "ERROR: Nothing to do, one copy only is the same as the original mo
 fi
 
 # test negative kinetic constant value
-sbmodelr -t G -k -0.2 ../sources/GeneExpressionUnit.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G -k -0.2 ../sources/GeneExpressionUnit.cps 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "sbmodelr: error: argument -k/--transport-k: -0.2 is an invalid negative value" output; then
@@ -52,7 +52,7 @@ if ! grep -q "sbmodelr: error: argument -k/--transport-k: -0.2 is an invalid neg
 fi
 
 # test negative noise level
-sbmodelr -t G --cn -0.3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --cn -0.3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: 'level' must be a positive floating point number" output; then
@@ -61,7 +61,7 @@ if ! grep -q "ERROR: 'level' must be a positive floating point number" output; t
 fi
 
 # test integer noise level
-sbmodelr -t G --cn 3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --cn 3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that no warning is issued
 if grep -q "ERROR: 'level' must be a positive floating point number" output; then
@@ -70,7 +70,7 @@ if grep -q "ERROR: 'level' must be a positive floating point number" output; the
 fi
 
 # test invalid noise distribution
-sbmodelr -t G --cn 0.1 foo ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --cn 0.1 foo ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: dist must be 'uni' or 'norm'" output; then
@@ -81,7 +81,7 @@ fi
 # we repeat error values matching those of--cn because we're testing more than 8 conditions
 
 # test negative noise level for --pn
-sbmodelr -t G --pn G -0.3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --pn G -0.3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: 'level' must be a positive floating point number" output; then
@@ -90,7 +90,7 @@ if ! grep -q "ERROR: 'level' must be a positive floating point number" output; t
 fi
 
 # test integer noise level
-sbmodelr -t G --pn G 3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --pn G 3 uni ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that no warning is issued
 if grep -q "ERROR: 'level' must be a positive floating point number" output; then
@@ -99,7 +99,7 @@ if grep -q "ERROR: 'level' must be a positive floating point number" output; the
 fi
 
 # test invalid noise distribution
-sbmodelr -t G --pn G 0.1 foo ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t G --pn G 0.1 foo ../sources/GeneExpressionUnit.cps 2 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: dist must be 'uni' or 'norm'" output; then

@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # run sbmodelr
-sbmodelr  -t drug --pn Drug_dose 0.5 uni -n ../sources/twins.gv -o PD2.cps ../sources/PulsedDrug.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py  -t drug --pn Drug_dose 0.5 uni -n ../sources/twins.gv -o PD2.cps ../sources/PulsedDrug.cps 2 1> output 2> /dev/null
 
 # compare output and target
 difference=$(diff output target_stdout)

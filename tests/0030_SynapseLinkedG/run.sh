@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # run sbmodelr
-sbmodelr -s v --synapse-link-g -n ../sources/1to2to3.gv -o IzLinked.cps ../sources/IzhikevichBurstingNeuron.cps 3 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -s v --synapse-link-g -n ../sources/1to2to3.gv -o IzLinked.cps ../sources/IzhikevichBurstingNeuron.cps 3 1> output 2> /dev/null
 
 # compare output and target
 difference=$(diff output target_stdout)

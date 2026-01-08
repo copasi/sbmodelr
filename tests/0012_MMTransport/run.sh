@@ -5,7 +5,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr --Hill-transport C --transport-Km 0.15 --transport-Vmax 0.5 -o IRC_2x2.cps ../sources/IrreversibleReactionChain.cps 2 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py --Hill-transport C --transport-Km 0.15 --transport-Vmax 0.5 -o IRC_2x2.cps ../sources/IrreversibleReactionChain.cps 2 2 1> output 2> /dev/null
 
 fail=0
 

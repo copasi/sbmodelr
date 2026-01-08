@@ -5,7 +5,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr -g G --pn G 0.8 uni --grn-a -1 --grn-h 4 -n ../sources/3circle.gv -o repressilator.cps --ignore-compartments ../sources/GeneExpressionUnit.cps 3 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -g G --pn G 0.8 uni --grn-a -1 --grn-h 4 -n ../sources/3circle.gv -o repressilator.cps --ignore-compartments ../sources/GeneExpressionUnit.cps 3 1> output 2> /dev/null
 
 fail=0
 

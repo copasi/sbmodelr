@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # test non-existent species
-sbmodelr -t J -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t J -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: Species J does not exist in the model" output; then
@@ -16,7 +16,7 @@ if ! grep -q "ERROR: Species J does not exist in the model" output; then
 fi
 
 # test transport on fixed species
-sbmodelr -t S -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t S -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: S is a species that does not depend on reactions, no transport reactions can be added" output; then
@@ -25,7 +25,7 @@ if ! grep -q "ERROR: S is a species that does not depend on reactions, no transp
 fi
 
 # test transport between same unit
-sbmodelr -t A -n ../sources/self.gv ../sources/PulsedDrug.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -t A -n ../sources/self.gv ../sources/PulsedDrug.cps 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q " Warning: transport on the same unit not allowed, ignoring 2 -> 2" output; then
@@ -34,7 +34,7 @@ if ! grep -q " Warning: transport on the same unit not allowed, ignoring 2 -> 2"
 fi
 
 # test synaptic link in grid configuration
-sbmodelr -s v ../sources/IzhikevichBurstingNeuron.cps 2 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -s v ../sources/IzhikevichBurstingNeuron.cps 2 2 > output 2>&1
 
 # check that the correct error is issued
 if ! grep -q "ERROR: 2D or 3D grids cannot have synaptic connections" output; then
@@ -43,7 +43,7 @@ if ! grep -q "ERROR: 2D or 3D grids cannot have synaptic connections" output; th
 fi
 
 # test synaptic link in undirected network
-sbmodelr -s v -n ../sources/twins.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -s v -n ../sources/twins.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
 
 # check that the correct error is issued
 if ! grep -q " Warning: network was defined as undirected, but synapses will be added as directed connections" output; then
@@ -52,7 +52,7 @@ if ! grep -q " Warning: network was defined as undirected, but synapses will be 
 fi
 
 # test synaptic link on global quantity that is not an ODE
-sbmodelr -s i -n ../sources/1to2.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -s i -n ../sources/1to2.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
 
 # check that the correct error is issued
 if ! grep -q "ERROR: i is a global variable that is not an ODE" output; then
@@ -61,7 +61,7 @@ if ! grep -q "ERROR: i is a global variable that is not an ODE" output; then
 fi
 
 # test synaptic link with noise and linked g
-sbmodelr -s i --cn 0.1 uni --synapse-link-g -n ../sources/1to2.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -s i --cn 0.1 uni --synapse-link-g -n ../sources/1to2.gv ../sources/IzhikevichBurstingNeuron.cps 2 > output 2>&1
 
 # check that the correct error is issued
 if ! grep -q "ERROR: --cn and --synapse-link-g options cannot be used together, chose only one!" output; then
@@ -70,7 +70,7 @@ if ! grep -q "ERROR: --cn and --synapse-link-g options cannot be used together, 
 fi
 
 # test diffusive connection on species that is not an ODE
-sbmodelr -d A -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
+$PYTH ../../src/sbmodelr.py -d A -n ../sources/twins.gv ../sources/PulsedDrug.cps 2 > output 2>&1
 
 # check that the correct warning is issued
 if ! grep -q "ERROR: A is a species but it is not of type ODE" output; then

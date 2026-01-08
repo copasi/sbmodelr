@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # test an empty network file
-sbmodelr -t G -n ../sources/empty.gv -o t.cps ../sources/GeneExpressionUnit.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t G -n ../sources/empty.gv -o t.cps ../sources/GeneExpressionUnit.cps 2 1> output 2> /dev/null
 
 # check that the correct warning is issued
 if ! grep -q " Warning: ../sources/empty.gv did not contain any valid edges, no connections added" output; then
@@ -16,7 +16,7 @@ if ! grep -q " Warning: ../sources/empty.gv did not contain any valid edges, no 
 fi
 
 # test a network file without edges
-sbmodelr -t G -n ../sources/no-edges.gv -o t.cps ../sources/GeneExpressionUnit.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t G -n ../sources/no-edges.gv -o t.cps ../sources/GeneExpressionUnit.cps 2 1> output 2> /dev/null
 
 # check that the correct warning is issued
 if ! grep -q " Warning: ../sources/no-edges.gv did not contain any valid edges, no connections added" output; then
@@ -25,7 +25,7 @@ if ! grep -q " Warning: ../sources/no-edges.gv did not contain any valid edges, 
 fi
 
 # test a network file with repeated edges
-sbmodelr -t G -n ../sources/duplicates.gv -o t.cps ../sources/GeneExpressionUnit.cps 4 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t G -n ../sources/duplicates.gv -o t.cps ../sources/GeneExpressionUnit.cps 4 1> output 2> /dev/null
 
 # check that the correct warning is issued
 if ! grep -q " Warning: duplicate entry for connection 1 to 3, ignored" output; then
@@ -48,7 +48,7 @@ if ((n != 1))  ; then
 fi
 
 # test a network file with non-numeric nodes
-sbmodelr -t G -n ../sources/non-numeric-nodes.gv -o t.cps ../sources/GeneExpressionUnit.cps 3 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t G -n ../sources/non-numeric-nodes.gv -o t.cps ../sources/GeneExpressionUnit.cps 3 1> output 2> /dev/null
 
 # check that the correct warning is issued
 if ! grep -q " Warning: ../sources/non-numeric-nodes.gv did not contain any valid edges, no connections added" output; then

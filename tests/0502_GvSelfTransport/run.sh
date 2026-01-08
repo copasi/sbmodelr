@@ -5,7 +5,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr -t X -n ../sources/self.gv -o ISC.cps ../sources/Selkov-Wolf-Heinrich.cps 2 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -t X -n ../sources/self.gv -o ISC.cps ../sources/Selkov-Wolf-Heinrich.cps 2 1> output 2> /dev/null
 
 fail=0
 

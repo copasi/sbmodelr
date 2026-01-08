@@ -8,7 +8,7 @@ test=${PWD##*/}          # to assign to a variable
 test=${test:-/}          # to correct for the case where PWD=/
 
 # run sbmodelr
-sbmodelr  -t Y -k 0.1 --pn X 0.1 norm --pn Y 0.1 norm  -o Wolf6x6Y.cps ../sources/Selkov-Wolf-Heinrich.cps 9 9 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py  -t Y -k 0.1 --pn X 0.1 norm --pn Y 0.1 norm  -o Wolf6x6Y.cps ../sources/Selkov-Wolf-Heinrich.cps 9 9 1> output 2> /dev/null
 
 fail=0
 

@@ -7,7 +7,7 @@ test=${test:-/}          # to correct for the case where PWD=/
 fail=0
 
 # run sbmodelr
-sbmodelr -s blob -n ../sources/1to2to3.gv ../sources/blob.cps 3 1> output 2> /dev/null
+$PYTH ../../src/sbmodelr.py -s blob -n ../sources/1to2to3.gv ../sources/blob.cps 3 1> output 2> /dev/null
 
 # check that the an error is issued
 if ! grep -q "ERROR: blob is a compartment ODE, but compartments cannot have synaptic links" output; then
