@@ -57,4 +57,4 @@ This package was supported by the National Institute of General Medical Sciences
 
 ## License
 
-The software *sbmodelr* is Copyright © 2024 Pedro Mendes, [Center for Cell Analysis and Modeling](https://health.uconn.edu/cell-analysis-modeling/), UConn Health. It is provided under the Artistic License 2.0, which is an OSI approved license. This license allows non-commercial and commercial use free of charge.
+The software *sbmodelr* is Copyright © 2024-2026 Pedro Mendes, [Center for Cell Analysis and Modeling](https://health.uconn.edu/cell-analysis-modeling/), UConn Health. It is provided under the Artistic License 2.0, which is an OSI approved license. This license allows non-commercial and commercial use free of charge.
