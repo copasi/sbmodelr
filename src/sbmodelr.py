@@ -530,6 +530,15 @@ def main():
                 indegrees[v] = indegrees.get(v, []) + [k]
             # indegrees is the inverse of regulated...
 
+    # create new model filename (if sbml string was given force .xml extension)
+    if( args.output ):
+        newfilename = args.output
+    else:
+        base,ext = os.path.splitext(os.path.basename(seedmodelfile))
+        if( args.sbml ):
+            newfilename = f"{base}_{fsuff}.xml"
+        else:
+            newfilename = f"{base}_{fsuff}{ext}"
 
     #####
     #  2. read the original model
@@ -692,15 +701,6 @@ def main():
     # get original model units
     munits = get_model_units(model=seedmodel)
 
-    # create new model filename (if sbml string was given force .xml extension)
-    if( args.output ):
-        newfilename = args.output
-    else:
-        base,ext = os.path.splitext(os.path.basename(seedmodelfile))
-        if( args.sbml ):
-            newfilename = f"{base}_{fsuff}.xml"
-        else:
-            newfilename = f"{base}_{fsuff}{ext}"
 
     #####
     #  5. process vivarium option
@@ -745,15 +745,13 @@ def main():
 
             # Generate topology (linear grid as default)
             # TODO: this needs to copy whatever topology was specified, not create a new one!
-            rows = args.rows
-            cols = args.columns
 
             # TODO: most likely topo_edges[] is just the same as links[] !
             # but topo_edges are not used at all below (they were used to check if there are names not in the cell_ids, but that will never happen given the tests upstream
             #topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
 
             # filename for the JSON file
-            jsonfilename = os.path.splitext(seedmodelfile)[0] + "_vivarium.json"
+            jsonfilename = os.path.splitext(newfilename)[0] + "_vivarium.json"
 
             # model filename, stripped of folder
             head,tail = os.path.split(seedmodelfile)
