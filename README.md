@@ -20,7 +20,7 @@ Practical uses of *sbmodelr* include:
 
 The output of this program is a new model file with the more complex model. It is expected that the user may still have to tune parts of the resulting model in a regular modeling tool, such as [COPASI](https://copasi.org), [VCell](https://vcell.org), etc., where the model will be used for simulations. (*sbmodelr* only creates models, it does not carry out simulations.)
 
-Optionally, the output will be a set of files required to run the simulation in a multiscale mode through the  [Vivarium](https://github.com/vivarium-collective/process-bigraph) framework. In this case each unit will be simulated indepedentely for a short time interval, followed by communication between units, coordinated by *Vivarium*.
+Optionally, the output will be a set of files required to run the simulation in a multiscale mode through the  [Vivarium](https://github.com/vivarium-collective/process-bigraph) framework. In this case each unit will be simulated independently for a short time interval, followed by communication between units, coordinated by *Vivarium*.
 
 ## Usage
 
