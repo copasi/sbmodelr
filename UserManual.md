@@ -20,12 +20,15 @@ The rest of this document describes the many options that are available in *sbmo
 *sbmodler* requires at least two command line arguments: 1) a base model file, and 2) the number of units to replicate. The simplest command that can be issued is: `sbmodelr mybasemodel.cps 2`; this would create a new file called `mybasemodel_2.cps` with two units that are exact copies of the model in `mybasemodel.cps`.
 
 ### File Input and Output
-The base model is either encoded in an [SBML](https:sbml.org) file (up to L3v2) or a [COPASI](https://copasi.org) file (extension `.cps`). The output of *sbmodelr* will be in the same format as the base model file unless forced to be in a specific format (explained below).
+The **input** base model is either encoded in an [SBML](https:sbml.org) file (up to L3v2) or a [COPASI](https://copasi.org) file (extension `.cps`). The output of *sbmodelr* will be in the same format as the base model file unless forced to be in a specific format (explained below).
+
+The **output** of *sbmodelr* may be either another SBML or COPASI file with a full exapanded model or, alternatively, the files required to run an equivalent multiscale simulation using the [Vivarium](https://github.com/vivarium-collective/process-bigraph) framework.
 
 By default the output file will be named after the input file with an appendix to its name reflecting the number of replicate units. To specify a different output filename use the option `-o filename` or `--output filename`, for example the command `sbmodelr -o newmodel.cps basemodel.cps 2` would put the new model in the file `newmodel.cps` (without this option it would be `basemodel_2.cps`).
 
  - To force the output file to be written in SBML format add the option `--sbml`; this option can take an argument specifying the level and version of SBML required (one of `l1v2`,`l2v3`,`l2v4`,`l2v5`,`l3v1`,`l3v2`).
  - To force the output file to be written in COPASI format you will need to explicitly name the output file with option `-o filename.cps` or `--output filename.cps`, ensuring that the filename ends with `.cps` extension.
+ - To create a *Vivarium* multiscale simulation, use the option `--vivarium`; that will then trigger the output of a JSON file with the topology of the new (compositional) simulation, and a Python file encapsulating the *Vivarium* class required to process the simulation. The two then need to be processed with *Vivarium* (version 2, or *Process-Bigraph*).
 
 ### Number of replicates and their connectivity
 
@@ -188,7 +191,7 @@ In the *Parameter Scan*, *Sensitivities*, *Cross Section* and *Optimization* tas
 
 ## License
 
-The software *sbmodelr* is Copyright © 2024 Pedro Mendes, [Center for Cell Analysis and Modeling](https://health.uconn.edu/cell-analysis-modeling/), UConn Health. It is provided under the Artistic License 2.0, which is an OSI approved license. This license allows non-commercial and commercial use free of charge.
+The software *sbmodelr* is Copyright © 2024-2026 Pedro Mendes, [Center for Cell Analysis and Modeling](https://health.uconn.edu/cell-analysis-modeling/), UConn Health. It is provided under the Artistic License 2.0, which is an OSI approved license. This license allows non-commercial and commercial use free of charge.
 
 ## Funding
 
