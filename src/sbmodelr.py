@@ -696,6 +696,104 @@ def main():
     #  5. process vivarium option
     #####
 
+    if args.vivarium:
+        #Vivarium JSON Mode: bypass the unit connections and everything
+        vivarium_transport_data = []
+
+        if transported:
+            for (sp, ttype) in transported:
+                # TODO: this needs to process Hill kinetics transport too
+                # TODO: this needs to deal with medium units too
+                if ttype != 'a' :
+                    print( "ERROR: Only mass action transport is allowed in Vivarium mode")
+                if (seednspecs > 0):
+                    if (sp in mspecs.index):
+                        rateconst = f'k_{sp}_transport'
+                        vivarium_transport_entry = {
+                            "species": sp,
+                            "rate_constant":trate,
+                            "reaction_details": { "parameter_name" : rateconst }
+                            }
+                        vivarium_transport_data.append(vivarium_transport_entry)
+                    else:
+                        print(f"ERROR: {sp} does not exist in the model!")
+
+            # generate list of cell identifiers
+            i = 0
+            cell_ids = []
+            for r in range(gridr):
+                for c in range(gridc):
+                    for l in range(gridl):
+                        if(dim==1):
+                            cell_ids[i] = f"{i+1}"
+                        else:
+                            if(dim==2):
+                                cell_ids[i] = f"{r+1},{c+1}"
+                            else:
+                                cell_ids[i] = f"{r+1},{c+1},{l+1}"
+                        i++
+
+            # Generate topology (linear grid as default)
+            # TODO: this needs to copy whatever topology was specified, not create a new one!
+            rows = args.rows
+            cols = args.columns
+
+            # TODO: most likely topo_edges[] is just the same as links[] !
+            # but topo_edges are not used at all below (they were used to check if there are names not in the cell_ids, but that will never happen given the tests upstream
+            topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
+
+            # filename for the JSON file
+            jsonfilename = os.path.splitext(newfilename)[0] + "_vivarium.json"
+
+            #vivarium_json_model = create_vivarium_file(
+            #    transport_data=vivarium_transport_data,
+            #    transport_rate=trate,
+            #    edges=topo_edges,
+            #    )
+            external_species = {
+                cid: { f"{linker}_external": 1.0 for linker in args.transport }
+                for cid in cell_ids
+            }
+
+            # Make the JSON document
+            json_document_state = {
+                'external_species': external_species,
+                'cells': {
+                    cid: {
+                        '_type': 'process',
+                        'address': 'local:copasi',
+                        'config': {
+                            'model_file': args.filename,
+                            'linkers': args.transport,
+                            'cell_id': cid,
+                        },
+                        'inputs': {
+                            'species': ['..', 'external_species', cid]
+                        },
+                        'outputs': {
+                            'species': ['..', 'external_species', cid]
+                        }
+                    }
+                    for cid in cell_ids
+                },
+            }
+
+            with open(jsonfilename, "w") as outfile:
+                json.dump(json_document_state, outfile, indent=2)
+                if( not args.quiet ):
+                    print(f'Created Vivarium model in {jsonfilename}')
+            #TODO: do we need to process the model file too? (external species)
+
+            # we're done
+            exit()
+
+        else:
+            # TODO: What do we do if there is no transport?
+            print( "ERROR: nothing to do, no species is transported between units")
+
+        # TODO: do we process the model file here, or do we leave that for sbmodelr_process ??
+        # Save the JSON file
+
 
     #####
     #  6. create new model
