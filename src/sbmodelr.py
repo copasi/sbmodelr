@@ -13,16 +13,16 @@
 # v. 1.0: baseline functionality
 # v. 1.1: bugfix allowing models to have species in more than one
 #         compartment with same name
-# v. 1.2: incorporates vivarium mode (Maya Abdalla's additions)
+# v. 1.2: rationalize all topologies through network representation
 
-#TODO: v.1.3: rationalize all topologies through network representation
+#TODO: v.1.3: incorporate Maya's additions (vivarium mode)
 #TODO: v.1.4: gene regulation by adding corresponding protein?
 #TODO: WISH LIST
 #TODO: binding between units?  (would nedd to select A,B and bind each one on each side)
 #TODO: modification between units? (would need to select species and reaction)
 #TODO: hexagonal arrays? (please no!)
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 import os
 import re
