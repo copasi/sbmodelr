@@ -43,6 +43,8 @@ While *sbmodelr* has special provisions to create 2D and 3D arrays, *any* kind o
 ## Connecting the units
 Currently there are four types of connections between units that can be added to the output model. They can be 1) transport of species, 2) diffusive connection of explicit ODEs, 3) regulatory interactions on the synthesis of species, and 4) chemical synapses through the method of Destexhe *et al.* (1994).
 
+At present, *Vivarium* multiscale simulations can only use transport of species. This limitation is expected to be removed in future versions.
+
 ### Transport of species
 
 If the base model has species that one wants to allow being transported between units, this can be specified with the option `-t species` or `--transport species`, where `species` is the species name. This will create transport reactions that are governed by mass action kinetics, where the rate constant is the same in both directions. A more general way of specifying transport is to use the option `--Hill-transport species` which will create transport steps following Hill kinetics. If connectivity is specified through a network file (option `-n netfile`) then the transport reactions will be reversible if the file specifies a `graph` with edges represented with `--`, or irreversible if the file specifies a `digraph` with edges represented with `->`. More specifically the rate laws used are described in the table below.
