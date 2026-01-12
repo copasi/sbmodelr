@@ -87,6 +87,8 @@ If a network was specified as a (bi-directional) graph, or we are creating 2D or
 
 Diffusive interactions can be used, for example, in connecting species that are transported, or diffuse between two compartments (*i.e.* formally the same as transport, but somehow these species were defined as explicit `ode` and so no reactions can be added). They also serve to connect two variables that represent electric potentials, where the constant *c* is interpreted as an conductivity between the two units.
 
+This option is presently not supported if the output is a *Vivarium* multiscale simulation.
+
 ### Regulatory interactions on the synthesis of species
 
 This type of connection is useful to create regulatory networks, particularly gene regulatory networks. It takes a species in the base unit and it will add a synthesis reaction for that species; that synthesis reaction is then modified (inhibited/activated) by the same species in other units.
@@ -110,6 +112,9 @@ The three parameters of the rate law above will be assigned default values (whci
 | *V*       | 1.0     | `--grn-V value`                           |
 | *a*       | 1.0     | `--grn-a value`                           |
 | *h*       | 2       | `--grn-h value`                           |
+
+
+This option is presently not supported if the output is a *Vivarium* multiscale simulation.
 
 ### Chemical synapses
 
@@ -139,6 +144,8 @@ The five parameters of the two differential equations above will be assigned def
 
 By default *sbmodelr* will create one instance of the *g* parameter per synapse, and each one can later be changed independently within a modeling program like COPASI. However, sometimes it may be useful to have all the *g* parameters linked to a single master parameter. This can be achieved with the option `--synapse-link-g` which will then create an extra parameter called `g_c_{ode}_synapse` (where *{ode}* is the name of the variable that represents membrane potential) and all other *g* parameters will be linked to that one.
 
+This option is presently not supported if the output is a *Vivarium* multiscale simulation.
+
 ## Randomizing parameter values
 
 When replicating the base unit into several others, *sbmodelr* is able to allow specific parameters to take values different from the original. This is useful to generate populations of models that have parameter values distributed randomly. Currently *sbmodelr* allows parameter values to be sampled from uniform or normal distributions. In both cases the distributions are defined based on the value that the parameter takes in the base model.
@@ -160,6 +167,8 @@ As an example, the command `--pn Km 0.5 uni` applied to a model that has a param
 
 When randomizing connection parameters, *sbmodelr* will create one instance of that parameter for each replica. If no randomization is requested then there is only one parameter for all replicas (since the replicates would have the same exact value). In some cases it may be useful to force *sbmodelr* to create replicas of the connection parameters even though one may not wish to randomize them. This can be easily achieved with the option `--cn 0 uni` which will replicate the connection parameters but will assign them the same exact value (since the amplitude of the interval is zero). This is illustrated in the example [Neuron networks I case 3](https://github.com/copasi/sbmodelr/blob/main/examples/Neuron_networks_I/README.md#case-3).
 
+This option is presently not supported if the output is a *Vivarium* multiscale simulation.
+
 ## Adding a medium compartment
 
 In some situations one may want to create several replicas of a model and add an extra unit called *medium* that only contains the species that are transported, such that the species can be transported between the *medium* and all other units. Importantly, the *medium* compartment will not contain any reactions contained in the base unit. This can be achieved using the option `--add-medium`. The *medium* volume is set to a default of 1.0, but other values can be specified with option `--medium-volume value`.
@@ -169,6 +178,8 @@ A *medium* compartment mimics the situation in an experiment where cells are sus
         sbmodelr -t nutrient --add-medium mycell.cps 100
 
 this would create a new model (called *mycell_100.cps*, as no name was specified) that contains 100 replicas of the base model (*mycell.cps*) where the species called *nutrient* can move between each cell and the medium (in both directions). The new model will include a compartment called *medium* that only contains species *nutrient*. The user can then load that model into COPASI and change the initial concentration of *nutrient* in the medium and set it to fixed, creating a gradient of nutrient concentration such that it gets transported into the cells.
+
+This option is presently not supported if the output is a *Vivarium* multiscale simulation.
 
 ## Events
 
