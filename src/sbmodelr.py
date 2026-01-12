@@ -740,7 +740,7 @@ def main():
 
             # TODO: most likely topo_edges[] is just the same as links[] !
             # but topo_edges are not used at all below (they were used to check if there are names not in the cell_ids, but that will never happen given the tests upstream
-            topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
+            #topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
 
             # filename for the JSON file
             jsonfilename = os.path.splitext(newfilename)[0] + "_vivarium.json"
@@ -784,7 +784,7 @@ def main():
                     print(f'Created Vivarium model in {jsonfilename}')
             #TODO: do we need to process the model file too? (external species)
 
-            # we're done
+            # we're done, nothign else to do given the vivarium option
             exit()
 
         else:
@@ -792,7 +792,6 @@ def main():
             print( "ERROR: nothing to do, no species is transported between units")
 
         # TODO: do we process the model file here, or do we leave that for sbmodelr_process ??
-        # Save the JSON file
 
 
     #####
