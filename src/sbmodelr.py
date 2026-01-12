@@ -692,6 +692,16 @@ def main():
     # get original model units
     munits = get_model_units(model=seedmodel)
 
+    # create new model filename (if sbml string was given force .xml extension)
+    if( args.output ):
+        newfilename = args.output
+    else:
+        base,ext = os.path.splitext(os.path.basename(seedmodelfile))
+        if( args.sbml ):
+            newfilename = f"{base}_{fsuff}.xml"
+        else:
+            newfilename = f"{base}_{fsuff}{ext}"
+
     #####
     #  5. process vivarium option
     #####
@@ -725,13 +735,13 @@ def main():
                 for c in range(gridc):
                     for l in range(gridl):
                         if(dim==1):
-                            cell_ids[i] = f"{i+1}"
+                            cell_ids.append(f"{i+1}")
                         else:
                             if(dim==2):
-                                cell_ids[i] = f"{r+1},{c+1}"
+                                cell_ids.append(f"{r+1},{c+1}")
                             else:
-                                cell_ids[i] = f"{r+1},{c+1},{l+1}"
-                        i++
+                                cell_ids.append(f"{r+1},{c+1},{l+1}")
+                        i = i+1
 
             # Generate topology (linear grid as default)
             # TODO: this needs to copy whatever topology was specified, not create a new one!
@@ -743,7 +753,11 @@ def main():
             #topo_edges = [[cell_ids[i], cell_ids[i+1]] for i in range(len(cell_ids) - 1)]
 
             # filename for the JSON file
-            jsonfilename = os.path.splitext(newfilename)[0] + "_vivarium.json"
+            jsonfilename = os.path.splitext(seedmodelfile)[0] + "_vivarium.json"
+
+            # model filename, stripped of folder
+            head,tail = os.path.split(seedmodelfile)
+            modelfilename = tail
 
             #vivarium_json_model = create_vivarium_file(
             #    transport_data=vivarium_transport_data,
@@ -763,7 +777,7 @@ def main():
                         '_type': 'process',
                         'address': 'local:copasi',
                         'config': {
-                            'model_file': args.filename,
+                            'model_file': modelfilename,
                             'linkers': args.transport,
                             'cell_id': cid,
                         },
@@ -797,16 +811,6 @@ def main():
     #####
     #  6. create new model
     #####
-
-    # create new model filename (if sbml string was given force .xml extension)
-    if( args.output ):
-        newfilename = args.output
-    else:
-        base,ext = os.path.splitext(os.path.basename(seedmodelfile))
-        if( args.sbml ):
-            newfilename = f"{base}_{fsuff}.xml"
-        else:
-            newfilename = f"{base}_{fsuff}{ext}"
 
     # create the new model name
     newname = f"{desc} of {seedname}"
