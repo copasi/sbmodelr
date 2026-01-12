@@ -253,17 +253,18 @@ def read_network(network_file):
 #  2. read original model,
 #  3. pre-process the items that will have noise
 #  4. copy notes, annotations, and units
-#  5. create new model
+#  5. process vivarium option if present
+#  6. create new model
 #  MAIN LOOP, iterating over each model element:
-#   6. create parameters, compartments, species without expressions
-#   7. create reactions (and fix mappings)
-#   8. set expressions for compartments and species
-#   9. create events that depende on variable
-#  10. loop over remaining events that don't depend on variables
-#  11. create medium unit if needed
-#  12. create unit connections
-#  13. copy task settings
-#  14. save model
+#    7. create parameters, compartments, species without expressions
+#    8. create reactions (and fix mappings)
+#    9. set expressions for compartments and species
+#   10. create events that depende on variable
+#  11. loop over remaining events that don't depend on variables
+#  12. create medium unit if needed
+#  13. create unit connections
+#  14. copy task settings
+#  15. save model
 ############
 
 def main():
@@ -688,12 +689,16 @@ def main():
                 # something went wrong, let's just write comments as if there was nothing
                 nnotes = f"<body xmlns=\"http://www.w3.org/1999/xhtml\"><p><br/></p><hr/><p>Processed with sbmodelr to produce {desc} of {seedmodelfile}</p><pre style=\"font-size:small\">{cmd}</pre></body>"
 
-
     # get original model units
     munits = get_model_units(model=seedmodel)
 
     #####
-    #  5. create new model
+    #  5. process vivarium option
+    #####
+
+
+    #####
+    #  6. create new model
     #####
 
     # create new model filename (if sbml string was given force .xml extension)
@@ -771,7 +776,7 @@ def main():
                         apdx = f"_{r+1},{c+1},{l+1}"
 
     #####
-    #  6. create parameters, compartments and species
+    #  7. create parameters, compartments and species
     #####
                 # PARAMETERS
                 if( seednparams>0 ):
@@ -852,7 +857,7 @@ def main():
                                 set_miriam_annotation(created=an['created'],model=newmodel, name=nname, replace=False)
 
     #####
-    #  7. create reactions
+    #  8. create reactions
     #####
 
                 # REACTIONS
@@ -920,7 +925,7 @@ def main():
                             if( 'created' in an ):
                                 set_miriam_annotation(created=an['created'],model=newmodel, name=nname, replace=False)
     #####
-    #  8. set expressions and initial_expressions
+    #  9. set expressions and initial_expressions
     #####
 
                 # PARAMETERS
@@ -955,7 +960,7 @@ def main():
                             set_species(model=newmodel, name=nname, exact=True, expression=ex )
 
     #####
-    #  9. create events
+    #  10. create events
     #####
 
                 # EVENTS
@@ -998,7 +1003,7 @@ def main():
                 i += 1
 
     #####
-    #  10. create events not dependent on variables
+    #  11. create events not dependent on variables
     #####
 
     etd=len(timeonlyevents)
@@ -1067,7 +1072,7 @@ def main():
                     set_miriam_annotation(created=an['created'],model=newmodel, name=p, replace=False)
 
     #####
-    # 11. create medium unit if needed
+    # 12. create medium unit if needed
     #####
     if( args.add_medium ):
         if( transported or odelink ):
@@ -1092,7 +1097,7 @@ def main():
 
 
     #####
-    # 12. create unit connections
+    # 13. create unit connections
     #####
 
     # check if we need to add the Hill transport rate law
@@ -2186,7 +2191,7 @@ def main():
                 exit()
 
     #####
-    # 13. set task parameters
+    # 14. set task parameters
     #####
 
     if( not args.ignore_tasks):
@@ -2336,7 +2341,7 @@ def main():
 
 
     #####
-    # 14. save model
+    # 15. save model
     #####
 
     # get the base of the output model filename
